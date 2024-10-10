@@ -1,0 +1,37 @@
+@startuml
+!include ./C4_Container.puml
+
+LAYOUT_WITH_LEGEND()
+
+Person(user, "Домовладелец", "Пользователь, который управляет домом")
+
+System_Boundary(homesystem, "Умный Дом") {
+    Container(web_app, "Web приложение", "Web-адаптивное приложение для взаимодействия пользователей с устройствами умного дома")
+    Container(api_gw, "API gateway")
+
+    Container(user_mgmt, Микросервис "Управление пользователями", "Spring Boot") 
+    Container(device_mgmt, Микросервис "Управление устройствами", "Spring Boot")
+    Container(telemetry, Микросервис "Телеметрия", "Spring Boot")
+
+    Rel_D(user, web_app, "")
+    Rel_D(web_app, api_gw, "Вызов необходимого API-метода")
+    Rel_D(api_gw, user_mgmt, "Синхронный вызов API-метода для регистрации/управления пользователя")
+    Rel_D(api_gw, telemetry, "Синхронный вызов API для получения информации с датчиков в доме")
+    Rel_D(api_gw, device_mgmt, "Синхронный вызов API для регистрации/управления устройства пользователем")
+}
+
+System_Ext(heating_system_ext, "Система отопления в доме", "")
+System_Ext(light_system_ext, "Система освещения в доме", "")
+System_Ext(gate_system_ext, "Система управления воротами в доме", "")
+System_Ext(video_system_ext, "Система видеонаблюдения в доме", "")
+
+Rel_D(device_mgmt, heating_system_ext, "Команда на управление отоплением")
+Rel_D(telemetry, heating_system_ext, "Чтение данных")
+Rel_D(device_mgmt, light_system_ext, "Команда на управление освещением")
+Rel_D(telemetry, light_system_ext, "Чтение данных")
+Rel_D(device_mgmt, gate_system_ext, "Команда на управление воротами")
+Rel_D(telemetry, gate_system_ext, "Чтение данных")
+Rel_D(device_mgmt, video_system_ext, "Команда на управление видеонаблюдением")
+Rel_D(telemetry, video_system_ext, "Чтение данных")
+
+@enduml

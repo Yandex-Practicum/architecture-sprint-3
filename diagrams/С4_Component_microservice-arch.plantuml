@@ -1,0 +1,64 @@
+@startuml
+!include ./C4_Container.puml
+
+LAYOUT_WITH_LEGEND()
+
+Person(user, "Домовладелец", "Пользователь, который управляет домом")
+Enterprise_Boundary(homesystem, "Умный Дом"){
+    Container(web_app, "Web приложение", "Web-адаптивное приложение для взаимодействия пользователей с устройствами умного дома")
+    Container(api_gw, "API gateway")
+    Container_Boundary(user_mgmt, "Управление пользователями") {
+        Container(user_cntrl, "Контроллер сервиса управление пользователями", "Spring Boot")
+        Container(user_mcs, Микросервис "Управление пользователями", "Spring Boot")
+        ContainerDb(user_mcs_db, "База данных микросервиса управления пользователями", "", "PostgeSQL")
+        
+        Rel_D(user_cntrl, user_mcs, "")
+        Rel_L(user_mcs, user_mcs_db, "Запись/чтение данных")
+    }
+    Container_Boundary(device_mgmt, "Управление устройствами") {
+        Container(device_cntrl, "Контроллер сервиса управление устройствами", "Spring Boot")
+        Container(device_mcs, Микросервис "Управление устройствами", "Spring Boot")
+        ContainerDb(device_mcs_db, "База данных микросервиса управления устройствами", "", "PostgeSQL")
+        
+        Rel_D(device_cntrl, device_mcs, "")
+        Rel_L(device_mcs, device_mcs_db, "Запись/чтение данных")
+    }
+    Container_Boundary(telemetry_mgmt, "Телеметрия") {
+        Container(telemetry_cntrl, "Контроллер сервиса телеметрии", "Spring Boot")
+        Container(telemetry_mcs, Микросервис "Телеметрия", "Spring Boot")
+        ContainerDb(telemetry_db, "База данных микросервиса телеметрия", "", "PostgeSQL")
+        Container(telemetry_hrvstr_mcs, "Harvester сервиса телеметрии", "Получает и синхронизирует данные датчиков согласно расписанию", "Spring Boot")
+        ContainerQueue(telemetry_queue, "Очередь для синхронизации данных", "Spring Boot")
+        Container(telemetry_queue_prc, "Обработчик очереди для синхронизации данных", "Spring Boot")
+        
+        Rel_D(telemetry_cntrl, telemetry_mcs, "")
+        Rel_R(telemetry_queue_prc, telemetry_db, "")
+        Rel_D(telemetry_queue_prc, telemetry_queue, "")
+        Rel_D(telemetry_hrvstr_mcs, telemetry_queue, "")
+        Rel_D(telemetry_mcs, telemetry_db, "Запись/чтение данных")
+    }
+
+    System_Ext(heating_system_ext, "Система отопления в доме", "")
+    System_Ext(light_system_ext, "Система освещения в доме", "")
+    System_Ext(gate_system_ext, "Система управления воротами в доме", "")
+    System_Ext(video_system_ext, "Система видеонаблюдения в доме", "")
+
+    Rel(device_mcs, heating_system_ext, "Команда на управление отоплением")
+    Rel(telemetry_hrvstr_mcs, heating_system_ext, "Чтение данных")
+    Rel(device_mcs, light_system_ext, "Команда на управление освещением")
+    Rel(telemetry_hrvstr_mcs, light_system_ext, "Чтение данных")
+    Rel(device_mcs, gate_system_ext, "Команда на управление воротами")
+    Rel(telemetry_hrvstr_mcs, gate_system_ext, "Чтение данных")
+    Rel(device_mcs, video_system_ext, "Команда на управление видеонаблюдением")
+    Rel(telemetry_hrvstr_mcs, video_system_ext, "Чтение данных")
+
+
+    Rel_D(user, web_app, "")
+    Rel_D(web_app, api_gw, "")
+    Rel_D(api_gw, user_cntrl, "")
+    Rel_D(api_gw, device_cntrl, "")
+    Rel(api_gw, telemetry_cntrl, "")
+    Rel(telemetry_hrvstr_mcs, device_cntrl, "")
+    Rel(user_mcs, device_cntrl, "")
+
+@enduml

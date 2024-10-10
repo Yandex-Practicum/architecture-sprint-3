@@ -1,0 +1,74 @@
+@startuml
+
+package "Микросервис управления пользователями" as uset_mgmt {
+    class UserController {
+        +getUser(long userId)
+        +getUsers(email, name)
+        +createUser(email, name)
+        +updateUser(long userId)
+        +deleteUser(long userId)
+        +getHouse(long houseId)
+        +createHouse(long userId, string address)
+        +updateHouse(long houseId)
+        +deleteHouse(long houseId)
+    }
+    class UserServiceImpl {
+        +getUser(long userId)
+        +getUsers(email, name)
+        +createUser(email, name)
+        +updateUser(long userId)
+        +deleteUser(long userId)
+        +getHouse(long houseId)
+        +createHouse(long userId, string address)
+        +updateHouse(long houseId)
+        +deleteHouse(long houseId))
+    }
+    interface UserService {
+        +getUser(long userId)
+        +getUsers(email, name)
+        +createUser(email, name)
+        +updateUser(long userId)
+        +deleteUser(long userId)
+        +getHouse(long houseId)
+        +createHouse(long userId, string address)
+        +updateHouse(long houseId)
+        +deleteHouse(long houseId))
+    }
+
+    UserController --> UserService
+    UserService --> UserServiceImpl
+
+}
+
+package "Микросервис управления устройствами" as device_mcs {
+    class DeviceController {
+        +getDevice(long deviceId))
+        +createDevice(long houseId, long userId)
+        +updateDevice(long deviceId)
+        +deleteDevice(long deviceId)
+        +setTargetTemperature(long deviceId, integer temperature)
+        +getCurrentTemperature(long deviceId)
+    }
+    class DeviceServiceImpl {
+        +getDevice(long deviceId))
+        +createDevice(long houseId, long userId)
+        +updateDevice(long deviceId)
+        +deleteDevice(long deviceId)
+        +setTargetTemperature(long deviceId, integer temperature)
+        +getCurrentTemperature(long deviceId)
+    }
+    interface DeviceService {
+        +getDevice(long deviceId))
+        +createDevice(long houseId, long userId)
+        +updateDevice(long deviceId)
+        +deleteDevice(long deviceId)
+        +setTargetTemperature(long deviceId, integer temperature)
+        +getCurrentTemperature(long deviceId)
+    }
+
+    DeviceController --> DeviceService
+    DeviceService --> DeviceServiceImpl
+
+}
+
+@enduml

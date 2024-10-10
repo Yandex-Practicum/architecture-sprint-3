@@ -1,22 +1,479 @@
 openapi: 3.0.0
 info:
-  title: simple-api
-  version: 0.1.0
-
+  title: Smart Home API
+  description: API для управления умным домом
+  version: 1.0.0
+servers:
+  - url: http://localhost:8080/api/v1
+    description: Локальный сервер
+tags:
+  - name: users_mgmt
+  - name: device_mgmt
+  - name: telemetry
 paths:
-  /hello:
+  /users:
     get:
+      summary: Получить список пользователей
+      operationId: getUsers
+      tags:
+        - users_mgmt
+      parameters:
+        - name: email
+          in: query
+          required: true
+          schema:
+            type: string
+            example: test@test.com
+          description: email пользователя
+        - name: status
+          in: query
+          required: false
+          schema:
+            type: string
+            example: active
       responses:
         '200':
-          description: A simple hello world!
+          description: Успешный ответ
           content:
-            text/plain:
+            application/json:
               schema:
-                type: string
-              example: Hello from a mocked response!
-      x-kusk:
-        upstream:
-          service:
-            name: hello-world-svc
-            namespace: default
-            port: 8080
+                type: array
+                items:
+                  $ref: '#/components/schemas/UserResponse'
+
+    post:
+      summary: Создать нового пользователя
+      operationId: createUser
+      tags:
+        - users_mgmt
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserRequest'
+      responses:
+        '201':
+          description: Пользователь успешно создан
+
+  /users/{id}:
+    get:
+      summary: Получить пользователя по ID
+      operationId: getUser
+      tags:
+        - users_mgmt
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Успешный ответ
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+
+    put:
+      summary: Обновить пользователя по ID
+      operationId: updateUser
+      tags:
+        - users_mgmt
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserResponse'
+      responses:
+        '201':
+          description: Пользователь успешно обновлен
+
+    delete:
+      summary: Удалить пользователя по ID
+      operationId: deleteUser
+      tags:
+        - users_mgmt
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Пользователь успешно удален
+  /users/{id}/houses:
+    get:
+      summary: Получить список домов пользователя
+      tags:
+        - users_mgmt
+      operationId: getHouses
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: address
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: status
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Найдены дома пользователя
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserHousesResponse'
+    post:
+      summary: Создать дом под пользователем
+      tags:
+        - users_mgmt
+      operationId: createHouse
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserHouseRequest'
+      responses:
+        '201':
+          description: Дом под клиентом успешно создан
+  /users/{userId}/houses/[houseId]:
+    get: 
+      summary: Получить информацию об определенном доме пользователя
+      tags:
+        - users_mgmt
+      operationId: getHouse
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: houseId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Информация о доме пользователя получена
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserHouseRequest'
+    put:
+      summary: Обновить информацию о доме пользователя
+      tags:
+        - users_mgmt
+      operationId: updateHouse
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: houseId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserHouseRequest'
+      responses:
+        '201':
+          description: Данные дома пользователя обновлены
+    delete:
+      summary: Удалить информацию о доме пользователя
+      tags:
+        - users_mgmt
+      operationId: updateHouse
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: houseId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '201':
+          description: Данные дома пользователя удалены
+  /devices:
+    get:
+      summary: Получить список девайсов
+      tags:
+        - device_mgmt
+      operationId: getDevices
+      parameters:
+        - name: userId
+          in: query
+          required: false
+          schema:
+            type: string
+            format: uuid
+        - name: house_id
+          in: query
+          required: false
+          schema:
+            type: string
+            format: uuid
+        - name: status
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: serial_number
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Список девайсов получен
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DeviceResponse'
+    post:
+      summary: Создать девайс
+      tags:
+        - device_mgmt
+      operationId: createDevice
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DeviceRequest'
+      responses:
+        '201':
+          description: Девайс создан
+  /devices/{id}:
+    get:
+      summary: Получить информацию о девайсе
+      tags:
+        - device_mgmt
+      operationId: getDevice
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: 
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Данные о девайсе получены
+          content:
+            application/json:
+              schema: 
+                $ref: '#/components/schemas/DeviceResponse'
+    put:
+      summary: Обновить данные девайса
+      tags:
+        - device_mgmt
+      operationId: updateDevice
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: 
+            type: string
+            format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DeviceRequest'
+      responses:
+        '201':
+          description: Данные девайса обновлены
+    delete:
+      summary: Удалить девайс
+      tags:
+        - device_mgmt
+      operationId: deleteDevice
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: 
+            type: string
+            format: uuid
+      responses:
+        '201':
+          description: Девайс удален
+  /devices/{id}/telemetry:
+    get:
+      summary: Получить данные телеметрии по девайсу
+      tags:
+        - telemetry 
+      operationId: getDeviceTelemetry
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: 
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Данные телеметрии девайса получены
+          content:
+            application/json:
+              schema: 
+                $ref: '#/components/schemas/DeviceTelemetryResponse'
+components:
+  schemas:
+    UserRequest:
+      type: object
+      properties:
+        email:
+          type: string
+    UserResponse:  
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        email:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        status:
+          type: string
+    UserHouseRequest:
+      type: object
+      properties:
+        address:
+          type: string
+    UserHousesResponse:
+      type: object
+      properties:
+        id: 
+          type: string
+          format: uuid
+        userId:
+          type: string
+          format: uuid
+        address:
+          type: string
+        createdAt: 
+          type: string
+          format: data-time
+        updatedAt:
+          type: string
+          format: data-time
+        status:
+          type: string
+    DeviceRequest:
+      type: object
+      properties:
+        currentTemperature:
+          type: integer
+        brightness:
+          type: integer
+        isOpen:
+          type: boolean
+        deviceType:
+          type: string
+        name: 
+          type: string
+        serialNumber:
+          type: string
+    DeviceResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        userId:
+          type: string
+          format: string
+        houseId: 
+          type: string
+          format: uuid
+        status:
+          type: string
+        currentTemperature:
+          type: integer
+        brightness:
+          type: integer
+        isOpen:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        deviceType:
+          type: string
+        name: 
+          type: string
+        serialNumber:
+          type: string
+    DeviceTelemetryResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        deviceId: 
+          type: string
+          format: uuid
+        houseId:
+          type: string
+          format: uuid
+        brightness:
+          type: integer
+        currentTemperature:
+          type: integer
+        isOpen:
+          type: boolean
+        videoData:
+          type: object
+          format: json

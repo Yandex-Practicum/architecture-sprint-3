@@ -1,0 +1,19 @@
+@startuml
+!include ./C4_Context.puml
+
+LAYOUT_WITH_LEGEND()
+
+Person(user, "Пользователь", "Домовладельцы с доступом к приложению по управлению температурой")
+System_Boundary(heatingSystem_e, "Система отопления") {
+    System(heatingSystem, "Система отопления", "Система по включению/выключению отопления, контролю температуры и установлению желаемой температуры")
+}
+System_Ext(heater, "Система отопления дома", "Предоставляют текущую температуру на датчике и обрабатывает запросы на управление температурой")
+
+Rel_D(user, heatingSystem, "Включает отопление в доме")
+Rel_D(user, heatingSystem, "Выключает отопление в доме")
+Rel_D(user, heatingSystem, "Устанавливает желаемую температуру")
+Rel_D(heatingSystem, user, "Передает текущую температуру")
+Rel_R(heatingSystem, heater, "Считывает текущую температуру")
+Rel_R(heatingSystem, heater, "Контролирует заданую температуру")
+
+@enduml
