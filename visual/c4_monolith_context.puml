@@ -1,0 +1,14 @@
+@startuml
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Context.puml
+
+title Context Diagram (As is)
+
+Person(superuser, "Пользователь БД", "Создает новые отапливающие устройства")
+Person(user, "Внешний пользователь", "Управляет отоплением")
+System(smart_home_monolith, "Smart Home Monolith", "Приложение для управления отоплением и мониторинга температуры в умном доме")
+System_Ext(sensor, "Датчик")
+
+Rel(superuser, smart_home_monolith, "Изменение данных напрямую в БД")
+Rel(user, smart_home_monolith, "Управление отоплением", "REST API")
+Rel(sensor, smart_home_monolith, "Обновляет данные об устройстве", "REST API")
+@enduml
