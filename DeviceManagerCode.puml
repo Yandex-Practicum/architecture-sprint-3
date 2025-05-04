@@ -1,0 +1,83 @@
+@startuml
+title Диаграмма классов диспетчера устройств
+
+top to bottom direction
+
+class DeviceManager {
+  - DeviceDriverRepository driverRepository
+  +void sendCommand(long deviceId, Command command)
+}
+
+DeviceManager --> DeviceDriverRepository: получает драйвер из репозитория
+DeviceManager ..> Command
+
+class DeviceDriverRepository {
+    -DeviceDriver[] drivers
+    +DeviceDriver getDeviceDriver(DeviceType deviceType)
+}
+
+DeviceDriverRepository "1" -- "1..*" DeviceDriver: содержит имплементации драйверов
+DeviceManager ..> DeviceType
+DeviceManager --> DeviceDriver: получает инструкций устройства
+
+abstract DeviceDriver {
+    {abstract} +DeviceType getDeviceType()
+    {abstract} +byte[] toDeviceInstructions(Command command)
+}
+
+DeviceDriver ..> DeviceType
+
+class BalluDigitalInverter3Driver {
+    +DeviceType getDeviceType()
+    +byte[] toDeviceInstructions(Command command)
+}
+
+BalluDigitalInverter3Driver <|-- DeviceDriver: пример одного из драйверов
+
+interface Command {
+  {abstract} +CommandType getCommandType()
+  {abstract} +CommandArg[] getArgs()
+}
+
+Command ..> CommandType
+Command ..> CommandArg
+
+class HeatingModuleSetTemperature {
+}
+
+HeatingModuleSetTemperature <|-- Command: пример одной из команд
+
+interface CommandArg {
+}
+
+class HeatingModuleSetTemperatureArg {
+    +int getTemperature()
+}
+
+HeatingModuleSetTemperatureArg <|-- CommandArg: пример одного из аргументов команд
+
+class DeviceType {
+    +long getTypeId()
+    +String getName()
+    +String getManufacturer()
+    +DeviceClass getDeviceClass()
+}
+
+DeviceType ..> DeviceClass
+
+enum DeviceClass {
+    HEATING_MODULE,
+    TEMPERATURE_SENSOR,
+    GATE,
+    ...
+}
+
+enum CommandType {
+    SWITCH_ON,
+    SWITCH_OFF,
+    OPEN,
+    CLOSE,
+    SET_TEMPERATURE
+    ...
+}
+@enduml

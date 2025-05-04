@@ -1,0 +1,85 @@
+@startuml
+title Диаграмма контейнеров Теплый дом
+
+top to bottom direction
+
+!RELATIVE_INCLUDE ?= "relative/absolute"
+!include ./includes/C4_Container.puml
+
+Person(user, "Пользователь", "Пользователь системы Тёплый дом")
+
+Person(salesman, "Специалист продаж", "Сотрудник отдела маркетинга и продаж")
+System(SalesSystem, "Маркетинг и продажи", "Система продаж устройств и услуг")
+
+Container(device, "Устройство умного дома", "Устройство, подключенное к системе Умного дома")
+Person(tech, "Технический специалист", "Специалист технической поддержки")
+System(SmartHouseSystem, "Умный дом", "Система управляет устройствами умного дома")
+
+Container_Boundary(SmartHouseSystem, "Умный дом") {
+  Container(ApiGateway, "API Gateway", "Kong", "API Gateway для управления трафиком, безопасности и мониторинга")
+  Container(WebAppMain, "Веб-приложение SPA", "js, React", "Позволяет пользователям управлять устройствами умного дома")
+  Container(MobileAppMain, "Мобильное приложение", "Kotlin", "Позволяет пользователям управлять устройствами умного дома")
+  Container(ServiceUserApp, "Сервис приложения пользователя", "Java, Spring", "Представляет API для взаимодействия с пользовательскими приложениями")
+  Container(DatabaseUserApp, "БД сервиса взаимодействия с пользователем", "PostgreSQL", "Хранит данные сервиса взаимодействия с пользователем")
+  Container(ServiceDeviceManagement, "Сервис управления устройствами", "Java, Spring", "Сервис управления устройствами умного дома")
+  Container(DatabaseDeviceManagement, "БД устройств", "PostgreSQL", "Хранит данные устройств")
+  Container(MessageBroker, "Брокер сообщений", "Kafka", "Брокер сообщений Kafka")
+  Container(ServiceMonitoring, "Сервис мониторинга", "Java, Spring", "Сервис мониторинга устройств умного дома")
+  Container(DatabaseMonitoring, "БД мониторинга", "PostgreSQL", "Хранит данные мониторинга")
+  Container(ServiceNotify, "Сервис нотификации", "Java, Spring", "Сервис нотификации наступления определенных событий и условий")
+  Container(DatabaseNotify, "БД нотификации", "PostgreSQL", "Хранит настройки нотификации")
+  Container(ServiceAnalytics, "Сервис аналитики", "Java, Spring", "Сервис отчетности и аналитики")
+  Container(WebAppTech, "Кабинет технического специалиста", "Java, JavaFx", "Позволяет техническим специалистам мониторить и управлять системой")
+}
+
+Container_Boundary(SalesSystem, "Маркетинг и продажи") {
+  Container(WebAppSales, "Интернет-магазин", "Java, Spring", "Позволяет пользователям управлять устройствами умного дома")
+  Container(WebAppSalesAdmin, "Админка интернет-магазина", "Java, Spring", "Позволяет специалисту отдела продаж управлять интернет-магазином")
+  Container(ServiceCatalog, "Сервис каталога", "Java, Spring", "Сервис каталога устройств и услуг интернет-магазина")
+  Container(DatabaseCatalog, "БД сервиса каталога", "PostgreSQL", "Хранит информацию каталога")
+  Container(ServiceOrders, "Сервис заказов", "Java, Spring", "Управляет платежами")
+  Container(DatabaseOrders, "БД сервиса заказов", "PostgreSQL", "Хранит информацию о заказах")
+  Container(ServicePayments, "Сервис платежей", "Java, Spring", "Управляет платежами")
+  Container(DatabasePayments, "БД сервиса платежей", "PostgreSQL", "Хранит информацию о платежах")
+}
+
+System_Ext(bank, "Банковская система", "Банковская система для обработки платежей")
+
+Rel(user, WebAppMain, "Управляет устройствами умного дома")
+Rel(user, MobileAppMain, "Управляет устройствами умного дома")
+Rel(user, ApiGateway, "Программируемые пользователем запросы к АПИ (SaaS)")
+Rel(WebAppMain, ApiGateway, "Запрос к АПИ")
+Rel(ApiGateway, ServiceUserApp, "Запрос к АПИ приложения пользователя")
+Rel(ApiGateway, MessageBroker, "Запрос к АПИ управлению устройств")
+Rel(ApiGateway, ServiceAnalytics, "Запрос к АПИ аналитики")
+Rel(ApiGateway, ServiceDeviceManagement, "Запрос к АПИ информации об устройствах")
+Rel(MobileAppMain, ApiGateway, "Запрос к АПИ")
+Rel(ServiceUserApp, DatabaseUserApp, "Считывает/записывает данные пользовательских приложений")
+Rel(ServiceDeviceManagement, MessageBroker, "Команды управления")
+Rel(ServiceDeviceManagement, DatabaseDeviceManagement, "Считывает/записывает данные устройств")
+Rel(ServiceMonitoring, MessageBroker, "Данные мониторинга")
+Rel(device, MessageBroker, "Передача телеметрии с устройств")
+Rel(ServiceMonitoring, DatabaseMonitoring, "Считывает/записывает данные мониторинга")
+Rel(ServiceNotify, WebAppMain, "Пуш нотификация пользователю")
+Rel(ServiceNotify, MobileAppMain, "Пуш нотификация пользователю")
+Rel(ServiceNotify, DatabaseNotify, "Считывает/записывает настройки уведомлений")
+Rel(ServiceAnalytics, DatabaseMonitoring, "Считывание данных аналитики")
+Rel(MessageBroker, device, "Управляющие команды")
+Rel(MessageBroker, ServiceMonitoring, "Телеметрия")
+Rel(MessageBroker, ServiceDeviceManagement, "Запрос к АПИ управлению устройств")
+Rel(MessageBroker, ServiceNotify, "Подпись на шину данных телеметрии")
+Rel(tech, WebAppTech, "Мониторинг и управление (поддержки пользователей)")
+Rel(WebAppTech, ApiGateway, "Запрос к АПИ")
+
+Rel(user, WebAppSales, "Покупает модули управления и устройства умного дома")
+Rel(WebAppSales, ServiceCatalog, "Поиск товаров и услуг")
+Rel(ServiceCatalog, DatabaseCatalog, "Считывает информацию о товарах и услугах")
+Rel(WebAppSales, ServiceOrders, "Создать заказ")
+Rel(ServiceOrders, DatabaseOrders, "Считывает/записывает информацию о заказах")
+Rel(WebAppSales, ServicePayments, "Выполнить платеж")
+Rel(ServicePayments, DatabasePayments, "Считывает/записывает информацию о платежах")
+Rel(ServicePayments, bank, "Проведение платежа")
+Rel(WebAppSalesAdmin, ServiceCatalog, "Обслуживание каталога")
+Rel(salesman, WebAppSalesAdmin, "Управляет интернет-магазином")
+
+@enduml

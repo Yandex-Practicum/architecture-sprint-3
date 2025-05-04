@@ -1,0 +1,109 @@
+@startuml
+title Диаграмма компонентов микросервисов Теплый дом
+
+top to bottom direction
+
+!RELATIVE_INCLUDE ?= "relative/absolute"
+!include ./includes/C4_Component.puml
+
+Container(device, "Устройство умного дома", "Устройство, подключенное к системе Умного дома")
+
+Container_Boundary(SmartHouseSystem, "Умный дом") {
+  Container(ApiGateway, "API Gateway", "Kong", "API Gateway для управления трафиком, безопасности и мониторинга")
+  Container(ServiceUserApp, "Сервис приложения пользователя", "Java, Spring", "Представляет API для взаимодействия с пользовательскими приложениями")
+  Container(DatabaseUserApp, "БД сервиса взаимодействия с пользователем", "PostgreSQL", "Хранит данные сервиса взаимодействия с пользователем")
+  Container(ServiceDeviceManagement, "Сервис управления устройствами", "Java, Spring", "Сервис управления устройствами умного дома")
+  Container(DatabaseDeviceManagement, "БД устройств", "PostgreSQL", "Хранит данные устройств")
+  Container(ServiceMonitoring, "Сервис мониторинга", "Java, Spring", "Сервис мониторинга устройств умного дома")
+  Container(DatabaseMonitoring, "БД мониторинга", "PostgreSQL", "Хранит данные мониторинга")
+  Container(ServiceNotify, "Сервис нотификации", "Java, Spring", "Сервис нотификации наступления определенных событий и условий")
+  Container(DatabaseNotify, "БД нотификации", "PostgreSQL", "Хранит настройки нотификации")
+  Container(ServiceAnalytics, "Сервис аналитики", "Java, Spring", "Сервис отчетности и аналитики")
+  Container(MessageBroker, "Брокер сообщений", "Kafka", "Брокер сообщений Kafka")
+}
+
+Container(ServiceUserApp, "Сервис приложения пользователя", "Java, Spring") {
+  Component(UsersApi, "UsersApi", "Управляет данными пользователя")
+  Component(WebAppSettingsApi, "WebAppSettingsApi", "Управляет настройками веб-приложения")
+  Component(MobileAppSettingsApi, "MobileAppSettingsApi", "Управляет настройками мобильного приложения")
+  Component(DashboardSettingsApi, "DashboardSettingsApi", "Управляет настройками дашбордов пользователей")
+  Component(ServiceUserAppLayer, "Service Layer", "Бизнес логика")
+  Component(RepositoryUserAppLayer, "Repository Layer", "Логика работы с данными")
+}
+
+Container(ServiceDeviceManagement, "Сервис управления устройствами", "Java, Spring") {
+  Component(HousesApi, "HousesApi", "Управляет данными домов пользователей")
+  Component(DevicesApi, "DevicesApi", "Управляет данными устройств пользователей")
+  Component(CommandsApi, "CommandsApi", "АПИ интерфейс для исполнения команд")
+  Component(DeviceManager, "DeviceManager", "Менеджер устройств")
+  Component(ServiceDeviceManagementLayer, "Service Layer", "Бизнес логика")
+  Component(RepositoryDeviceManagementLayer, "Repository Layer", "Логика работы с данными")
+}
+
+Container(ServiceMonitoring, "Сервис мониторинга", "Java, Spring") {
+  Component(MetricsApi, "MetricsApi", "АПИ для запроса и записи метрик")
+  Component(StateApi, "StateApi", "АПИ для запроса состояния")
+  Component(ServiceMonitoringLayer, "Service Layer", "Бизнес логика")
+  Component(RepositoryMonitoringLayer, "Repository Layer", "Логика работы с данными")
+}
+
+Container(ServiceNotify, "Сервис нотификации", "Java, Spring") {
+  Component(NotifySettingsApi, "NotifySettingsApi", "Управляет настройками уведомлений")
+  Component(TelemetryDataSubscriber, "TelemetryDataSubscriber", "Обрабатывает телеметрию и пушит уведомления пользователю")
+  Component(ServiceNotifyLayer, "Service Layer", "Бизнес логика")
+  Component(RepositoryNotifyLayer, "Repository Layer", "Логика работы с данными")
+}
+
+Container(ServiceAnalytics, "Сервис аналитики", "Java, Spring") {
+  Component(AnalyticsApi, "AnalyticsApi", "АПИ для отчетности")
+  Component(Cube, "Cube", "Многомерное хранилище отчетов")
+}
+
+Rel(ApiGateway, UsersApi, "Запрос к АПИ")
+Rel(ApiGateway, WebAppSettingsApi, "Запрос к АПИ")
+Rel(ApiGateway, MobileAppSettingsApi, "Запрос к АПИ")
+Rel(ApiGateway, DashboardSettingsApi, "Запрос к АПИ")
+Rel(ApiGateway, HousesApi, "Запрос к АПИ")
+Rel(ApiGateway, DevicesApi, "Запрос к АПИ")
+Rel(ApiGateway, CommandsApi, "Запрос к АПИ")
+Rel(ApiGateway, StateApi, "Запрос к АПИ")
+Rel(ApiGateway, MetricsApi, "Запрос к АПИ")
+Rel(ApiGateway, NotifySettingsApi, "Запрос к АПИ")
+Rel(ApiGateway, AnalyticsApi, "Запрос к АПИ")
+Rel(ApiGateway, MessageBroker, "Запрос к АПИ управлению устройств")
+
+Rel(UsersApi, ServiceUserAppLayer, "Вызов бизнес-логики")
+Rel(WebAppSettingsApi, ServiceUserAppLayer, "Вызов бизнес-логики")
+Rel(MobileAppSettingsApi, ServiceUserAppLayer, "Вызов бизнес-логики")
+Rel(DashboardSettingsApi, ServiceUserAppLayer, "Вызов бизнес-логики")
+Rel(ServiceUserAppLayer, RepositoryUserAppLayer, "Считывает/записывает данные пользовательских приложений")
+Rel(RepositoryUserAppLayer, DatabaseUserApp, "Считывает/записывает данные пользовательских приложений")
+
+Rel(HousesApi, ServiceDeviceManagementLayer, "Вызов бизнес-логики")
+Rel(DevicesApi, ServiceDeviceManagementLayer, "Вызов бизнес-логики")
+Rel(CommandsApi, DeviceManager, "Передает команду на исполнение")
+Rel(ServiceDeviceManagementLayer, RepositoryDeviceManagementLayer, "Считывает/записывает данные устройств")
+Rel(RepositoryDeviceManagementLayer, DatabaseDeviceManagement, "Считывает/записывает данные устройств")
+
+Rel(MetricsApi, ServiceMonitoringLayer, "Вызов бизнес-логики")
+Rel(StateApi, ServiceMonitoringLayer, "Вызов бизнес-логики")
+Rel(ServiceMonitoringLayer, RepositoryMonitoringLayer, "Считывает/записывает данные устройств")
+Rel(RepositoryMonitoringLayer, DatabaseMonitoring, "Считывает/записывает данные устройств")
+
+Rel(NotifySettingsApi, ServiceNotifyLayer, "Вызов бизнес-логики")
+Rel(TelemetryDataSubscriber, ServiceNotifyLayer, "Вызов бизнес-логики")
+Rel(ServiceNotifyLayer, RepositoryNotifyLayer, "Считывает/записывает настройки нотификаций")
+Rel(RepositoryNotifyLayer, DatabaseNotify, "Считывает/записывает настройки нотификаций")
+
+Rel(AnalyticsApi, Cube, "Запрос данных отчета")
+Rel(Cube, DatabaseMonitoring, "Расчет многомерного хранилища")
+
+Rel(MessageBroker, MetricsApi, "Телеметрия")
+Rel(MessageBroker, TelemetryDataSubscriber, "Подпись на шину данных телеметрии")
+Rel(DeviceManager, MessageBroker, "Команды управления")
+Rel(MessageBroker, CommandsApi, "Запрос к АПИ управлению устройств")
+
+Rel(device, MessageBroker, "Передача телеметрии с устройств")
+Rel(MessageBroker, device, "Управляющие команды")
+
+@enduml

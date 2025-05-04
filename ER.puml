@@ -1,0 +1,77 @@
+@startuml
+
+skinparam linetype ortho
+
+entity "User" as user {
+  *user_id: number <<generated>>
+  --
+  *first_name: text
+  *last_name: text
+  *email: text
+  description: text
+}
+
+entity "House" as house {
+  *house_id: number <<generated>>
+  --
+  *user_id: number <<FK>>
+  *name: text
+  description: text
+}
+
+entity "Device" as device {
+  *device_id: number <<generated>>
+  --
+  *device_type_id: number <<FK>>
+  *house_id: number <<FK>>
+  status_id: number <<FK>>
+  *name: text
+  *serial_number: text
+  firmware: text
+  firmware_date: date
+  added: timestamp
+  last_updated: timestamp
+  description: text
+}
+
+entity "DeviceType" as device_type {
+  *device_type_id: number <<generated>>
+  --
+  *device_class_id: number <<FK>>
+  *name: text
+  *manufacturer: text
+  latest_firmware: text
+  latest_firmware_date: date
+  description: text
+}
+
+entity "DeviceClass" as device_class {
+  *device_class_id: number <<generated>>
+  --
+  *name: text
+  description: text
+}
+
+entity "TelemetryData" as telemetry_data {
+  *device_id: number <<FK>>
+  *telemetry_type_id: number <<FK>>
+  *date_time_point: timestamp
+  --
+  numeric_value0: double
+  numeric_value1: double
+  numeric_value2: double
+  numeric_value3: double
+  string_value0: text
+  string_value1: text
+  string_value2: text
+  string_value3: text
+  raw_data: binary
+}
+
+user ||--o{ house
+house ||--o{ device
+device ||--o{ telemetry_data
+device ||--|{ device_type
+device_type ||--|{ device_class
+
+@enduml
