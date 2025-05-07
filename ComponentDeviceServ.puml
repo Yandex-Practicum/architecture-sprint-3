@@ -1,0 +1,30 @@
+@startuml
+title Конфигурирование устройств - Component Diagram
+
+top to bottom direction
+
+!includeurl https://raw.githubusercontent.com/RicardoNiepel/C4-PlantUML/master/C4_Component.puml
+
+System_Ext(remoteconfig, "Remote contfig", "Интерфейс дистанционного конфигурирования")
+
+Container_Boundary(DeviceService, "DeviceService") {
+  Container(DeviceServ, "DeviceService", "Java, Spring", "Конфигурирование устройств")
+  
+}
+
+Container(DeviceServ, "Web Application", "Java, Spring") {
+  Component(ConfigController, "ConfigController", "Управляет конфигурированием устройств")
+  Component(DeviceDriver, "DeviceDriver", "Взаимодействует с устройством по настройке конфигурации")
+  Component(ServiceLayer, "Service Layer", "Business logic")
+  Component(RepositoryLayer, "Repository Layer", "Логика доступа к данным")
+}
+Container(APIGateway, "APIGateway", "AGW", "Маршрутизация запросов к API")
+Container(DeviceDB, "DeviceDB", "MongoDB", "Хранилище конфигурационных данных устройств")
+Rel(ConfigController,ServiceLayer,"Обращается к логике конфигурирования устройства")
+Rel(ServiceLayer,DeviceDriver,"Взаимодействует с устройством")
+Rel(ServiceLayer,RepositoryLayer,"Чтение-запись данных")
+Rel(RepositoryLayer,DeviceDB,"Транзакционный доступ к данным")
+Rel(DeviceDriver,remoteconfig,"Взаимодействует с устройством")
+Rel(APIGateway,ConfigController,"Запрос на конфигурирование", "REST")
+
+@enduml

@@ -1,0 +1,43 @@
+@startuml
+title Регистрация домовладений и пользователей - Code Diagram
+
+top to bottom direction
+
+!includeurl https://raw.githubusercontent.com/RicardoNiepel/C4-PlantUML/master/C4_Component.puml
+
+class User {
+  +String name
+  +String email
+  +List<Right> rights
+  +void register()
+  +void login()
+}
+
+class House {
+  +String type
+  +Date startDate
+  +Date endDate
+  +List<User> owners
+  +void activate()
+  +void cancel()
+}
+
+class Right {
+  +RightType type
+  +String resource
+  +void addRight()
+  +void removeRight()
+}
+
+enum RightType {
+  VIEW
+  EDIT
+  ADMIN
+  DELETE
+}
+
+User "1" -- "0..*" Right : has >
+House "1" -- "0..*" User : owns >
+Right "0..*" -- "1" User : assigned to >
+
+@enduml

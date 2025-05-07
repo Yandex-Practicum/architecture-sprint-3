@@ -1,0 +1,19 @@
+@startuml
+title Контекст системы Умный дом
+
+top to bottom direction
+
+!includeurl https://raw.githubusercontent.com/RicardoNiepel/C4-PlantUML/master/C4_Component.puml
+
+Person(user, "User", "Владелец дома")
+Person(admin, "Administrator", "Администратор системы")
+System(SmartHomeApp, "Smarthome system", "Управление системой отопления и мониторинг температуры")
+
+System_Ext(sensor, "Sensor", "Интерфейс датчиков температуры")
+System_Ext(remotecontrol, "Remote control", "Устройство дистанционного управления")
+
+Rel(user, SmartHomeApp, "Управляет системой отопления")
+Rel(admin,SmartHomeApp,"Подключает сервис и решает инциденты")
+Rel(SmartHomeApp,sensor,"Считывает значения температуры")
+Rel(SmartHomeApp,remotecontrol,"Включает и выключает отопление, задаеёт целевое значение температуры")
+@enduml

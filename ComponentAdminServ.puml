@@ -1,0 +1,30 @@
+@startuml
+title Регистрация домовладений  и пользователей - Component Diagram
+
+top to bottom direction
+
+!includeurl https://raw.githubusercontent.com/RicardoNiepel/C4-PlantUML/master/C4_Component.puml
+
+Container_Boundary(AdminService, "AdminService") {
+  Container(AdminServ, "AdminService", "Java, Spring", "Регистрация домовладений  и пользователей")
+}
+Container(Auth, "Auth", "Auth", "Поддержка JWT ")
+
+
+Container(AdminServ, "Web Application", "Java, Spring") {
+  Component(UserController, "UserController", "Управляет регистрационными данными пользователя")
+  Component(HouseController, "HouseController", "Управляет подключением домовладения")
+  Component(ServiceLayer, "Service Layer", "Business logic")
+  Component(RepositoryLayer, "Repository Layer", "Логика доступа к данным")
+}
+Container(AdminDB, "AdminDB", "PostgreSQL", "Хранилище данных о пользователях и домовладениях")
+Container(APIGateway, "APIGateway", "AGW", "Маршрутизация запросов к API")
+Rel(UserController,ServiceLayer,"Обращается к логике регистрации пользователя")
+Rel(HouseController,ServiceLayer,"Обращается к логике регистрации домовладения")
+Rel(ServiceLayer,RepositoryLayer,"Reads/Writes data")
+Rel(RepositoryLayer,AdminDB,"Транзакционный доступ к данным")
+Rel(ServiceLayer,Auth,"Ролевая модель пользователя")
+Rel(APIGateway,UserController,"Регистрационные данные пользователя и дома", "REST")
+Rel(APIGateway,HouseController,"Регистрационные данные пользователя и дома", "REST")
+
+@enduml

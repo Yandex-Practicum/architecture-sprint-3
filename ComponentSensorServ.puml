@@ -1,0 +1,30 @@
+@startuml
+title Получение и обработка  данных с датчиков - Component Diagram
+
+top to bottom direction
+
+!includeurl https://raw.githubusercontent.com/RicardoNiepel/C4-PlantUML/master/C4_Component.puml
+
+System_Ext(sensor, "Sensor", "Получение и обработка  данных с датчиков")
+
+Container_Boundary(SensorService, "SensorService") {
+  Container(SensorServ, "SensorService", "Java, Spring", "Получение и обработка  данных с датчиков")
+  
+}
+
+Container(SensorServ, "Web Application", "Java, Spring") {
+  Component(SensorController, "SensorController", "Принимает данные с датчиков")
+  Component(DeviceSensorDriver, "DeviceSensorDriver", "Взаимодействует с датчиками")
+  Component(ServiceLayer, "Service Layer", "Business logic")
+  Component(RepositoryLayer, "Repository Layer", "Логика доступа к данным")
+}
+Container(APIGateway, "APIGateway", "AGW", "Маршрутизация запросов к API")
+Container(SensorDB, "SensorDB", "MongoDB", "Хранилище данных полученных с датчиков")
+Rel(SensorController,ServiceLayer,"Обращается к логике конфигурирования устройства")
+Rel(ServiceLayer,DeviceSensorDriver,"Взаимодействует с устройством")
+Rel(ServiceLayer,RepositoryLayer,"Чтение-запись данных")
+Rel(RepositoryLayer,SensorDB,"Транзакционный доступ к данным")
+Rel(DeviceSensorDriver,sensor,"Взаимодействует с устройством")
+Rel(APIGateway,SensorController,"Запрос событий датчика", "asinc")
+
+@enduml
