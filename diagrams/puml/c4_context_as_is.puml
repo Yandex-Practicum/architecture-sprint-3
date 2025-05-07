@@ -1,0 +1,29 @@
+@startuml C4_Context_Diagram
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Context.puml
+
+
+title "System Context diagram for Smart Home Monolith"
+
+Person(homeowner, "Домовладелец", "Пользователь, который управляет системой отопления и получает информацию о температуре")
+
+System(smartHomeMonolith, "Smart Home Monolith", "Позволяет пользователям управлять отоплением и мониторить температуру в умном доме")
+
+System_Ext(heatingDevice, "Система отопления", "Физическое оборудование, которое нагревает помещение")
+
+System_Ext(temperatureSensor, "Датчик температуры", "Физическое устройство, которое измеряет температуру в помещении")
+
+System_Ext(mobileApp, "Мобильное приложение", "Приложение для iOS/Android, которое предоставляет доступ к системе")
+
+System_Ext(webBrowser, "Веб-браузер", "Позволяет управлять системой через веб-интерфейс")
+
+' Определяем отношения
+Rel(homeowner, webBrowser, "Использует для доступа к системе")
+Rel(homeowner, mobileApp, "Использует для доступа к системе")
+Rel(webBrowser, smartHomeMonolith, "Отправляет HTTP запросы к REST API")
+Rel(mobileApp, smartHomeMonolith, "Отправляет HTTP запросы к REST API")
+
+Rel_Down(smartHomeMonolith, heatingDevice, "Отправляет команды (включение/выключение, установка температуры)")
+Rel_Up(temperatureSensor, smartHomeMonolith, "Отправляет данные о текущей температуре")
+Rel_Down(heatingDevice, smartHomeMonolith, "Отправляет данные о состоянии и текущей температуре")
+
+@enduml
