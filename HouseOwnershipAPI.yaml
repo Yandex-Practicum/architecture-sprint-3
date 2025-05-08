@@ -1,0 +1,205 @@
+openapi: 3.0.3
+info:
+  title: House Ownership API
+  version: 1.0.0
+  description: API для управления домовладениями и пользователями
+servers:
+  - url: https://api.example.com/v1
+    description: Production server
+
+paths:
+  /house-ownership:
+    get:
+      summary: Получить данные по домовладению и пользователям
+      description: Возвращает информацию о домовладении и связанных пользователях
+      parameters:
+        - name: address
+          in: query
+          required: true
+          description: Адрес домовладения
+          schema:
+            type: string
+            example: "г. Новосибирск, ул. Ленина, д. 10"
+      responses:
+        '200':
+          description: Успешный ответ
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HouseOwnershipResponse'
+        '404':
+          description: Домовладение не найдено
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    post:
+      summary: Создать новое домовладение и пользователей
+      description: Регистрирует новое домовладение и связанных пользователей
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateHouseOwnershipRequest'
+      responses:
+        '201':
+          description: Домовладение успешно создано
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HouseOwnershipResponse'
+        '400':
+          description: Неверные данные запроса
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  schemas:
+    HouseOwnershipResponse:
+      type: object
+      properties:
+        address:
+          type: string
+          example: "г.Новосибирск, ул. Ленина, д. 10"
+        date:
+          type: string
+          format: date-time
+          example: "2023-01-01T12:00:00Z"
+        status:
+          type: string
+          enum: [новый, в_процессе, подключён]
+          example: "новый"
+        users:
+          type: array
+          items:
+            $ref: '#/components/schemas/User'
+        devices:
+          type: array
+          items:
+            $ref: '#/components/schemas/Device'
+      required:
+        - address
+        - users
+    CreateHouseOwnershipRequest:
+      type: object
+      properties:
+        address:
+          type: string
+          example: "г.Новосибирск, ул. Ленина, д. 10"
+        users:
+          type: array
+          items:
+            $ref: '#/components/schemas/CreateUserRequest'
+      required:
+        - address
+        - users
+
+    User:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+          example: 1
+        full_name:
+          type: string
+          example: "Иванов Иван Иванович"
+        email:
+          type: string
+          format: email
+          example: "ivanov@example.com"
+        registration_date:
+          type: string
+          format: date
+          example: "2023-01-01"
+      required:
+        - id
+        - full_name
+        - email
+
+    CreateUserRequest:
+      type: object
+      properties:
+        full_name:
+          type: string
+          example: "Иванов Иван Иванович"
+        email:
+          type: string
+          format: email
+          example: "ivanov@example.com"
+      required:
+        - full_name
+        - email
+
+    Device:
+      type: object
+      properties:
+        serial_number:
+          type: string
+          example: "SN12345678"
+        device_type:
+          $ref: '#/components/schemas/DeviceType'
+        connection_date:
+          type: string
+          format: date-time
+          example: "2023-01-01T12:00:00Z"
+        status:
+          type: string
+          enum: [работает, неисправно, отключено]
+          example: "работает"
+      required:
+        - serial_number
+        - device_type
+
+    CreateDeviceRequest:
+      type: object
+      properties:
+        serial_number:
+          type: string
+          example: "SN12345678"
+        device_type_id:
+          type: integer
+          format: int64
+          example: 1
+      required:
+        - serial_number
+        - device_type_id
+
+    DeviceType:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+          example: 1
+        name:
+          type: string
+          example: "Датчик температуры"
+        manufacturer:
+          type: string
+          example: "ООО Ромашка"
+      required:
+        - id
+        - name
+
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+              example: "HOUSE_NOT_FOUND"
+            message:
+              type: string
+              example: "Домовладение с указанным адресом не найдено"
+          required:
+            - code
+            - message
+      required:
+        - error

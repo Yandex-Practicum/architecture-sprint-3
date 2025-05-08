@@ -1,0 +1,48 @@
+@startuml
+title Контейнеры системы Умный дом
+
+top to bottom direction
+
+!includeurl https://raw.githubusercontent.com/RicardoNiepel/C4-PlantUML/master/C4_Component.puml
+Person(user, "User", "Владелец дома")
+Person(admin, "Administrator", "Администратор системы")
+System(SmartHomeApp, "Smarthome system", "Управление домовыми системами")
+Container_Boundary(SmartHomeApp, "Smarthome system") {
+  Container(APIGateway, "APIGateway", "AGW", "Маршрутизация запросов к API")
+  Container(MobileAppFront, "Mobile Application", "React,Javascript", "Конфигурирование устройств, получение данных, отдача команд")
+  Container(WebAppFront, "Web Application Front", "React,Javascript", "Конфигурирование устройств, получение данных, отдача команд")
+  Container(AdminService, "AdminService", "Java, Spring", "Регистрация домовладений  и пользователей")
+  Container(DeviceService, "DeviceService", "Java, Spring", "Конфигурирование устройств")
+  Container(CommandService, "CommandService", "Java, Spring", "Отдача команд, контроль их исполнения")
+  Container(SensorService, "SensorService", "Java, Spring", "Получение и обработка  данных с датчиков")
+  Container(AdminDB, "AdminDB", "PostgeSQL", "Хранилище данных о пользователях и домовладениях")
+  Container(DeviceDB, "DeviceDB", "MongoDB", "Хранилище кофигурационных данных устройств")
+  Container(CommandDB, "CommandDB", "MongoDB", "Хранилище команд")
+  Container(SensorDB, "SensorDB", "MongoDB", "Хранилище зачений с датчиков")
+  Container(Broker, "Broker", "Kafka", "Поддержка очередей  сообщений (asinc) ")
+  Container(Auth, "Auth", "Auth", "Поддержка JWT ")
+}
+System_Ext(sensor, "Sensor", "Интерфейсы датчиков")
+System_Ext(remotecontrol, "Remote control", "Устройства дистанционного управления")
+System_Ext(remoteconfig, "Remote contfig", "Интерфейс дистанционного конфигурирования")
+Rel(user, MobileAppFront, "Диалог в системе")
+Rel(user, WebAppFront, "Диалог в системе")
+Rel(admin, MobileAppFront, "Диалог в системе")
+Rel(admin, WebAppFront, "Диалог в системе")
+Rel(WebAppFront, APIGateway, "Запрос к системе", "REST")
+Rel(MobileAppFront, APIGateway, "Запрос к системе", "REST")
+Rel(sensor,SensorService, "События датчика", "asinc")
+Rel(CommandService,remotecontrol,"Команды устройству", "asinc")
+Rel(AdminService,AdminDB,"Регистрационные данные пользователя и дома", "REST")
+Rel(DeviceService,DeviceDB,"Хранение регистрационных данных", "REST")
+Rel(SensorService,SensorDB,"Журнализация событий датчиков", "REST")
+Rel(CommandService,CommandDB,"Журнализация команд", "REST")
+Rel(APIGateway,AdminService,"Регистрационные данные пользователя и дома", "REST")
+Rel(APIGateway,DeviceService,"Запрос на конфигурирование", "REST")
+Rel(APIGateway,SensorService,"Запрос событий датчика", "asinc")
+Rel(APIGateway,CommandService,"Команды устройству", "asinc")
+Rel(Broker,SmartHomeApp, "Топики", "asinc")
+Rel(APIGateway,Auth, "Запрос JWT", "REST")
+Rel(AdminService,Auth, "Ролевая модель", "REST")
+Rel(DeviceService,remoteconfig, "События датчика", "asinc")
+@enduml

@@ -1,0 +1,123 @@
+asyncapi: '3.0.0'
+info:
+  title: SmartHome Kafka Gateway API
+  version: '1.0.0'
+  description: |
+    Асинхронное API для взаимодействия APIGateway и SensorService через Kafka.
+    REST-запросы авторизуются через JWT, Kafka-сообщения - через SASL/SCRAM.
+
+servers:
+  kafka:
+    host: kafka-broker.smarthome.internal:9092
+    protocol: kafka
+    security:
+      - $ref: '#/components/securitySchemes/saslScram'
+    tags:
+      - name: Broker
+
+  authServer:
+    host: auth.smarthome.internal
+    protocol: https
+    security:
+      - $ref: '#/components/securitySchemes/jwt'
+    tags:
+      - name: Auth
+
+channels:
+  sensor.command.request:
+    address: sensor.command.request
+    messages:
+      SensorCommandRequest:
+        headers:
+          type: object
+          properties:
+            Authorization:
+              type: string
+        payload:
+          type: object
+          properties:
+            requestId:
+              type: string
+              format: uuid
+            deviceId:
+              type: string
+              pattern: '^[A-Z0-9]{12}$'
+            commandType:
+              type: string
+              enum: ['GET_DATA', 'CALIBRATE', 'UPDATE_CONFIG']
+            payload:
+              type: object
+              additionalProperties: true
+          required:
+            - requestId
+            - deviceId
+            - commandType
+
+  sensor.data.response.{deviceId}:
+    address: sensor.data.response.{deviceId}
+    parameters:
+      deviceId:
+        description: Серийный номер устройства
+        location: "$message.payload#/deviceId"
+    messages:
+      SensorDataResponse:
+        payload:
+          type: object
+          properties:
+            requestId:
+              type: string
+              format: uuid
+            deviceId:
+              type: string
+              pattern: '^[A-Z0-9]{12}$'
+            values:
+              type: array
+              items:
+                type: object
+                properties:
+                  type:
+                    type: string
+                  value:
+                    type: number
+                  unit:
+                    type: string
+                  timestamp:
+                    type: string
+                    format: date-time
+            status:
+              type: string
+              enum: ['OK', 'ERROR', 'PARTIAL']
+          required:
+            - requestId
+            - deviceId
+            - values
+            - status
+
+operations:
+  publishSensorCommand:
+    action: send
+    channel:
+      $ref: '#/channels/sensor.command.request'
+    tags:
+      - name: Commands
+    security:
+      - $ref: '#/components/securitySchemes/jwt'
+
+  consumeSensorData:
+    action: receive
+    channel:
+      $ref: '#/channels/sensor.data.response.{deviceId}'
+    tags:
+      - name: SensorData
+
+components:
+  securitySchemes:
+    saslScram:
+      type: scramSha256
+      description: Аутентификация брокера
+
+    jwt:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Токен для авторизации REST-запросов
