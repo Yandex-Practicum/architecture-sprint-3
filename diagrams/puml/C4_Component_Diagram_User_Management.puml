@@ -1,0 +1,70 @@
+@startuml C4_Component_Diagram_User_Management
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Component.puml
+
+' Define LAYOUT_WITH_LEGEND option
+LAYOUT_WITH_LEGEND()
+
+title "Component diagram for User Management Service"
+
+Container_Boundary(user_service, "User Management Service") {
+    Component(user_api_controller, "User API Controller", "Spring REST Controller", "REST API для управления пользователями")
+    Component(auth_controller, "Auth Controller", "Spring REST Controller", "API для аутентификации и авторизации")
+
+    Component(user_service_comp, "User Service", "Spring Service", "Управление пользователями и профилями")
+    Component(auth_service, "Auth Service", "Spring Service", "Аутентификация и авторизация пользователей")
+    Component(permission_service, "Permission Service", "Spring Service", "Управление правами доступа")
+
+    Component(jwt_provider, "JWT Provider", "Spring Security", "Генерация и валидация JWT токенов")
+    Component(password_encoder, "Password Encoder", "Spring Security", "Хеширование и проверка паролей")
+    Component(oauth_provider, "OAuth Provider", "Spring Security", "Поддержка OAuth аутентификации")
+
+    Component(user_repository, "User Repository", "Spring Data JPA", "Доступ к данным пользователей")
+    Component(role_repository, "Role Repository", "Spring Data JPA", "Доступ к данным о ролях")
+    Component(permission_repository, "Permission Repository", "Spring Data JPA", "Доступ к данным о разрешениях")
+
+    Component(user_event_publisher, "User Event Publisher", "Spring Service", "Публикация событий пользователей")
+
+    Component(config, "Configuration", "Spring @Configuration", "Конфигурация сервиса")
+}
+
+ContainerDb(user_db, "User DB", "PostgreSQL", "Хранит данные пользователей, роли и разрешения")
+Container(api_gateway, "API Gateway", "Spring Cloud Gateway", "Единая точка входа для клиентских запросов")
+Container(kafka, "Kafka Event Bus", "Apache Kafka", "Обеспечивает асинхронную коммуникацию")
+Container(notification_service, "Notification Service", "Spring Boot", "Отправка уведомлений пользователям")
+
+' External relationships
+Rel(api_gateway, user_api_controller, "HTTP/REST", "Запросы управления пользователями")
+Rel(api_gateway, auth_controller, "HTTP/REST", "Запросы аутентификации")
+Rel_D(user_repository, user_db, "JDBC/JPA", "Чтение/запись данных пользователей")
+Rel_D(role_repository, user_db, "JDBC/JPA", "Чтение/запись данных ролей")
+Rel_D(permission_repository, user_db, "JDBC/JPA", "Чтение/запись данных разрешений")
+Rel_R(user_event_publisher, kafka, "Публикует", "События пользователей")
+Rel_D(user_service, notification_service, "HTTP/REST", "Запросы отправки уведомлений")
+
+' Internal relationships
+Rel(user_api_controller, user_service_comp, "Вызывает", "Управление пользователями")
+Rel(user_api_controller, permission_service, "Вызывает", "Проверка прав")
+Rel(auth_controller, auth_service, "Вызывает", "Аутентификация")
+
+Rel(user_service_comp, user_repository, "Вызывает", "Чтение/запись пользователей")
+Rel(user_service_comp, user_event_publisher, "Вызывает", "Публикация событий")
+Rel(user_service_comp, password_encoder, "Вызывает", "Хеширование паролей")
+
+Rel(auth_service, user_repository, "Вызывает", "Поиск пользователей")
+Rel(auth_service, jwt_provider, "Вызывает", "Работа с токенами")
+Rel(auth_service, password_encoder, "Вызывает", "Проверка паролей")
+Rel(auth_service, oauth_provider, "Вызывает", "OAuth аутентификация")
+
+Rel(permission_service, role_repository, "Вызывает", "Чтение ролей")
+Rel(permission_service, permission_repository, "Вызывает", "Чтение разрешений")
+Rel(permission_service, user_repository, "Вызывает", "Чтение пользователей и их ролей")
+
+Rel(config, user_service_comp, "Конфигурирует")
+Rel(config, auth_service, "Конфигурирует")
+Rel(config, permission_service, "Конфигурирует")
+Rel(config, jwt_provider, "Конфигурирует")
+Rel(config, password_encoder, "Конфигурирует")
+Rel(config, oauth_provider, "Конфигурирует")
+Rel(config, user_event_publisher, "Конфигурирует")
+
+@enduml

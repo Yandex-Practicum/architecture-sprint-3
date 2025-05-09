@@ -1,0 +1,69 @@
+@startuml C4_Component_Diagram_Temperature_Management
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Component.puml
+
+' Define LAYOUT_WITH_LEGEND option
+LAYOUT_WITH_LEGEND()
+
+title "Component diagram for Temperature Management Service"
+
+Container_Boundary(temperature_service, "Temperature Management Service") {
+    Component(temp_api_controller, "Temperature API Controller", "Spring REST Controller", "REST API для управления температурными системами")
+
+    Component(temp_command_service, "Temperature Command Service", "Spring Service", "Обработка команд управления температурой")
+    Component(temp_query_service, "Temperature Query Service", "Spring Service", "Получение данных о температурных системах")
+
+    Component(heating_manager, "Heating System Manager", "Spring Service", "Управление системами отопления")
+    Component(cooling_manager, "Cooling System Manager", "Spring Service", "Управление системами охлаждения")
+
+    Component(temp_event_publisher, "Temperature Event Publisher", "Spring Service", "Публикация событий изменения температуры")
+    Component(temp_event_consumer, "Temperature Event Consumer", "Spring Service", "Обработка событий от датчиков и других сервисов")
+
+    Component(temp_analytics, "Temperature Analytics", "Spring Service", "Анализ данных о температуре и энергоэффективности")
+
+    Component(temp_repository, "Temperature Repository", "Spring Data JPA", "Доступ к данным о температурных системах")
+    Component(temp_history_repository, "Temperature History Repository", "Spring Data JPA", "Доступ к историческим данным температуры")
+
+    Component(config, "Configuration", "Spring @Configuration", "Конфигурация сервиса")
+}
+
+ContainerDb(temperature_db, "Temperature DB", "PostgreSQL", "Хранит данные о температурных системах и историю")
+Container(api_gateway, "API Gateway", "Spring Cloud Gateway", "Единая точка входа для клиентских запросов")
+Container(kafka, "Kafka Event Bus", "Apache Kafka", "Обеспечивает асинхронную коммуникацию")
+Container(device_service, "Smart Devices Management Service", "Spring Boot", "Управление умными устройствами")
+Container(automation_service, "Automation Service", "Spring Boot", "Управление автоматизацией и сценариями")
+
+' External relationships
+Rel(api_gateway, temp_api_controller, "HTTP/REST", "Запросы управления температурой")
+Rel_D(temp_repository, temperature_db, "JDBC/JPA", "Чтение/запись данных о системах")
+Rel_D(temp_history_repository, temperature_db, "JDBC/JPA", "Чтение/запись исторических данных")
+Rel_R(temp_event_publisher, kafka, "Публикует", "События изменения температуры")
+Rel_L(temp_event_consumer, kafka, "Подписывается", "События от датчиков, команды автоматизации")
+Rel_R(device_service, temperature_service, "HTTP/REST", "Запросы данных о температурных устройствах")
+Rel_L(automation_service, temperature_service, "HTTP/REST", "Команды изменения температуры по сценариям")
+
+' Internal relationships
+Rel(temp_api_controller, temp_command_service, "Вызывает", "Передача команд управления")
+Rel(temp_api_controller, temp_query_service, "Вызывает", "Запросы данных")
+
+Rel(temp_command_service, heating_manager, "Вызывает", "Команды управления отоплением")
+Rel(temp_command_service, cooling_manager, "Вызывает", "Команды управления охлаждением")
+Rel(temp_command_service, temp_event_publisher, "Вызывает", "Публикация событий изменения")
+
+Rel(temp_query_service, temp_repository, "Вызывает", "Запросы данных о системах")
+Rel(temp_query_service, temp_history_repository, "Вызывает", "Запросы исторических данных")
+Rel(temp_query_service, temp_analytics, "Вызывает", "Аналитические запросы")
+
+Rel(heating_manager, temp_repository, "Вызывает", "Чтение/запись состояния отопления")
+Rel(cooling_manager, temp_repository, "Вызывает", "Чтение/запись состояния охлаждения")
+
+Rel(temp_event_consumer, temp_command_service, "Вызывает", "Передача команд от внешних систем")
+Rel(temp_event_consumer, temp_repository, "Вызывает", "Обновление данных по событиям")
+
+Rel(temp_analytics, temp_repository, "Вызывает", "Чтение данных о системах")
+Rel(temp_analytics, temp_history_repository, "Вызывает", "Чтение исторических данных")
+
+Rel(config, temp_command_service, "Конфигурирует", "Настройка параметров")
+Rel(config, temp_event_publisher, "Конфигурирует", "Настройка Kafka")
+Rel(config, temp_event_consumer, "Конфигурирует", "Настройка обработчиков событий")
+
+@enduml

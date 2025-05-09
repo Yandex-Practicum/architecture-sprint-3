@@ -1,0 +1,435 @@
+@startuml C4_Code_Diagram_Temperature
+title "Code diagram for Temperature Management Service"
+
+' Define packages
+package "ru.yandex.practicum.smarthome.temperature.controller" {
+    Class "TemperatureApiController" as TempApiController {
+        - temperatureCommandService: TemperatureCommandService
+        - temperatureQueryService: TemperatureQueryService
+        + getTemperatureSystems(): ResponseEntity<List<TemperatureSystemDto>>
+        + getTemperatureSystem(id: Long): ResponseEntity<TemperatureSystemDto>
+        + createTemperatureSystem(dto: TemperatureSystemDto): ResponseEntity<TemperatureSystemDto>
+        + updateTemperatureSystem(id: Long, dto: TemperatureSystemDto): ResponseEntity<TemperatureSystemDto>
+        + deleteTemperatureSystem(id: Long): ResponseEntity<Void>
+        + getCurrentTemperature(id: Long): ResponseEntity<Double>
+        + setTargetTemperature(id: Long, temperature: double): ResponseEntity<Void>
+        + turnOn(id: Long): ResponseEntity<Void>
+        + turnOff(id: Long): ResponseEntity<Void>
+        + getTemperatureHistory(id: Long, from: LocalDateTime, to: LocalDateTime): ResponseEntity<List<TemperatureRecordDto>>
+    }
+}
+
+package "ru.yandex.practicum.smarthome.temperature.service.command" {
+    Interface "TemperatureCommandService" as TempCommandInterface {
+        + createTemperatureSystem(dto: TemperatureSystemDto): TemperatureSystemDto
+        + updateTemperatureSystem(id: Long, dto: TemperatureSystemDto): TemperatureSystemDto
+        + deleteTemperatureSystem(id: Long): void
+        + setTargetTemperature(id: Long, temperature: double): void
+        + turnOn(id: Long): void
+        + turnOff(id: Long): void
+        + updateCurrentTemperature(id: Long, temperature: double): void
+    }
+
+    Class "TemperatureCommandServiceImpl" as TempCommandImpl {
+        - temperatureSystemRepository: TemperatureSystemRepository
+        - temperatureEventPublisher: TemperatureEventPublisher
+        - validator: TemperatureValidator
+        - heatingManager: HeatingSystemManager
+        - coolingManager: CoolingSystemManager
+        + createTemperatureSystem(dto: TemperatureSystemDto): TemperatureSystemDto
+        + updateTemperatureSystem(id: Long, dto: TemperatureSystemDto): TemperatureSystemDto
+        + deleteTemperatureSystem(id: Long): void
+        + setTargetTemperature(id: Long, temperature: double): void
+        + turnOn(id: Long): void
+        + turnOff(id: Long): void
+        + updateCurrentTemperature(id: Long, temperature: double): void
+        - findTemperatureSystemOrThrow(id: Long): TemperatureSystem
+        - publishTemperatureEvent(event: TemperatureEvent): void
+    }
+}
+
+package "ru.yandex.practicum.smarthome.temperature.service.query" {
+    Interface "TemperatureQueryService" as TempQueryInterface {
+        + getTemperatureSystems(): List<TemperatureSystemDto>
+        + getTemperatureSystem(id: Long): TemperatureSystemDto
+        + getCurrentTemperature(id: Long): double
+        + getTemperatureHistory(id: Long, from: LocalDateTime, to: LocalDateTime): List<TemperatureRecordDto>
+        + getEnergyEfficiencyReport(id: Long, period: Period): EnergyEfficiencyReportDto
+    }
+
+    Class "TemperatureQueryServiceImpl" as TempQueryImpl {
+        - temperatureSystemRepository: TemperatureSystemRepository
+        - temperatureHistoryRepository: TemperatureHistoryRepository
+        - temperatureAnalytics: TemperatureAnalytics
+        + getTemperatureSystems(): List<TemperatureSystemDto>
+        + getTemperatureSystem(id: Long): TemperatureSystemDto
+        + getCurrentTemperature(id: Long): double
+        + getTemperatureHistory(id: Long, from: LocalDateTime, to: LocalDateTime): List<TemperatureRecordDto>
+        + getEnergyEfficiencyReport(id: Long, period: Period): EnergyEfficiencyReportDto
+        - findTemperatureSystemOrThrow(id: Long): TemperatureSystem
+        - convertToDto(entity: TemperatureSystem): TemperatureSystemDto
+        - convertToDtoList(entities: List<TemperatureSystem>): List<TemperatureSystemDto>
+    }
+}
+
+package "ru.yandex.practicum.smarthome.temperature.service.device" {
+    Interface "HeatingSystemManager" as HeatingManagerInterface {
+        + isSupported(temperatureSystem: TemperatureSystem): boolean
+        + turnOn(temperatureSystem: TemperatureSystem): void
+        + turnOff(temperatureSystem: TemperatureSystem): void
+        + setTargetTemperature(temperatureSystem: TemperatureSystem, temperature: double): void
+    }
+
+    Class "HeatingSystemManagerImpl" as HeatingManagerImpl {
+        - deviceServiceClient: DeviceServiceClient
+        + isSupported(temperatureSystem: TemperatureSystem): boolean
+        + turnOn(temperatureSystem: TemperatureSystem): void
+        + turnOff(temperatureSystem: TemperatureSystem): void
+        + setTargetTemperature(temperatureSystem: TemperatureSystem, temperature: double): void
+        - sendCommandToDevice(deviceId: String, command: String, parameters: Map<String, Object>): void
+    }
+
+    Interface "CoolingSystemManager" as CoolingManagerInterface {
+        + isSupported(temperatureSystem: TemperatureSystem): boolean
+        + turnOn(temperatureSystem: TemperatureSystem): void
+        + turnOff(temperatureSystem: TemperatureSystem): void
+        + setTargetTemperature(temperatureSystem: TemperatureSystem, temperature: double): void
+    }
+
+    Class "CoolingSystemManagerImpl" as CoolingManagerImpl {
+        - deviceServiceClient: DeviceServiceClient
+        + isSupported(temperatureSystem: TemperatureSystem): boolean
+        + turnOn(temperatureSystem: TemperatureSystem): void
+        + turnOff(temperatureSystem: TemperatureSystem): void
+        + setTargetTemperature(temperatureSystem: TemperatureSystem, temperature: double): void
+        - sendCommandToDevice(deviceId: String, command: String, parameters: Map<String, Object>): void
+    }
+}
+
+package "ru.yandex.practicum.smarthome.temperature.service.analytics" {
+    Interface "TemperatureAnalytics" as TempAnalyticsInterface {
+        + analyzeTemperatureData(id: Long, from: LocalDateTime, to: LocalDateTime): TemperatureAnalysisDto
+        + calculateEnergyEfficiency(id: Long, period: Period): EnergyEfficiencyReportDto
+        + optimizeTemperatureSettings(id: Long): TemperatureOptimizationDto
+    }
+
+    Class "TemperatureAnalyticsImpl" as TempAnalyticsImpl {
+        - temperatureHistoryRepository: TemperatureHistoryRepository
+        - temperatureSystemRepository: TemperatureSystemRepository
+        + analyzeTemperatureData(id: Long, from: LocalDateTime, to: LocalDateTime): TemperatureAnalysisDto
+        + calculateEnergyEfficiency(id: Long, period: Period): EnergyEfficiencyReportDto
+        + optimizeTemperatureSettings(id: Long): TemperatureOptimizationDto
+        - calculateAverageTemperature(records: List<TemperatureRecord>): double
+        - calculateTemperatureDeviation(records: List<TemperatureRecord>, targetTemp: double): double
+        - calculateEnergyUsage(records: List<TemperatureRecord>, system: TemperatureSystem): double
+    }
+}
+
+package "ru.yandex.practicum.smarthome.temperature.service.event" {
+    Class "TemperatureEventConsumer" as TempEventConsumer {
+        - temperatureCommandService: TemperatureCommandService
+        - temperatureSystemRepository: TemperatureSystemRepository
+        + consumeDeviceTemperatureEvent(event: DeviceTemperatureEvent): void
+        + consumeAutomationTemperatureCommand(command: AutomationTemperatureCommand): void
+        - updateCurrentTemperature(deviceId: String, temperature: double): void
+        - executeTemperatureCommand(command: AutomationTemperatureCommand): void
+    }
+
+    Class "TemperatureEventPublisher" as TempEventPublisher {
+        - kafkaTemplate: KafkaTemplate<String, TemperatureEvent>
+        + publishTemperatureChangedEvent(event: TemperatureChangedEvent): void
+        + publishTargetTemperatureSetEvent(event: TargetTemperatureSetEvent): void
+        + publishSystemStateChangedEvent(event: TemperatureSystemStateChangedEvent): void
+        - sendToKafka(topic: String, key: String, event: TemperatureEvent): void
+    }
+
+    Class "TemperatureEvent" as TempEvent {
+        - id: Long
+        - timestamp: LocalDateTime
+        - systemId: Long
+        - type: TemperatureEventType
+    }
+
+    Enum "TemperatureEventType" as TempEventType {
+        TEMPERATURE_CHANGED
+        TARGET_TEMPERATURE_SET
+        SYSTEM_TURNED_ON
+        SYSTEM_TURNED_OFF
+    }
+}
+
+package "ru.yandex.practicum.smarthome.temperature.repository" {
+    Interface "TemperatureSystemRepository" as TempSystemRepo {
+        + findAll(): List<TemperatureSystem>
+        + findById(id: Long): Optional<TemperatureSystem>
+        + save(entity: TemperatureSystem): TemperatureSystem
+        + deleteById(id: Long): void
+        + findByDeviceId(deviceId: String): Optional<TemperatureSystem>
+        + findByRoomId(roomId: Long): List<TemperatureSystem>
+    }
+
+    Interface "TemperatureHistoryRepository" as TempHistoryRepo {
+        + findBySystemIdAndTimestampBetween(systemId: Long, from: LocalDateTime, to: LocalDateTime): List<TemperatureRecord>
+        + save(entity: TemperatureRecord): TemperatureRecord
+        + findTopBySystemIdOrderByTimestampDesc(systemId: Long): Optional<TemperatureRecord>
+        + findBySystemIdAndTimestampAfter(systemId: Long, timestamp: LocalDateTime): List<TemperatureRecord>
+    }
+}
+
+package "ru.yandex.practicum.smarthome.temperature.domain" {
+    Class "TemperatureSystem" as TempSystemEntity {
+        - id: Long
+        - name: String
+        - deviceId: String
+        - roomId: Long
+        - type: TemperatureSystemType
+        - isOn: boolean
+        - targetTemperature: double
+        - currentTemperature: double
+        - minTemperature: double
+        - maxTemperature: double
+        - mode: OperationMode
+        - lastUpdated: LocalDateTime
+        + getId(): Long
+        + getName(): String
+        + getDeviceId(): String
+        + getRoomId(): Long
+        + getType(): TemperatureSystemType
+        + isOn(): boolean
+        + getTargetTemperature(): double
+        + getCurrentTemperature(): double
+        + getMinTemperature(): double
+        + getMaxTemperature(): double
+        + getMode(): OperationMode
+        + getLastUpdated(): LocalDateTime
+        + setId(id: Long): void
+        + setName(name: String): void
+        + setDeviceId(deviceId: String): void
+        + setRoomId(roomId: Long): void
+        + setType(type: TemperatureSystemType): void
+        + setOn(isOn: boolean): void
+        + setTargetTemperature(temperature: double): void
+        + setCurrentTemperature(temperature: double): void
+        + setMinTemperature(temperature: double): void
+        + setMaxTemperature(temperature: double): void
+        + setMode(mode: OperationMode): void
+        + setLastUpdated(lastUpdated: LocalDateTime): void
+    }
+
+    Class "TemperatureRecord" as TempRecordEntity {
+        - id: Long
+        - systemId: Long
+        - temperature: double
+        - timestamp: LocalDateTime
+        - isManualAdjustment: boolean
+        - energyConsumption: Double
+        + getId(): Long
+        + getSystemId(): Long
+        + getTemperature(): double
+        + getTimestamp(): LocalDateTime
+        + isManualAdjustment(): boolean
+        + getEnergyConsumption(): Double
+        + setId(id: Long): void
+        + setSystemId(systemId: Long): void
+        + setTemperature(temperature: double): void
+        + setTimestamp(timestamp: LocalDateTime): void
+        + setManualAdjustment(isManualAdjustment: boolean): void
+        + setEnergyConsumption(energyConsumption: Double): void
+    }
+
+    Enum "TemperatureSystemType" as TempSystemType {
+        HEATING
+        COOLING
+        DUAL_MODE
+    }
+
+    Enum "OperationMode" as OpMode {
+        AUTO
+        MANUAL
+        ECO
+        BOOST
+    }
+}
+
+package "ru.yandex.practicum.smarthome.temperature.dto" {
+    Class "TemperatureSystemDto" as TempSystemDto {
+        - id: Long
+        - name: String
+        - deviceId: String
+        - roomId: Long
+        - type: TemperatureSystemType
+        - isOn: boolean
+        - targetTemperature: double
+        - currentTemperature: double
+        - minTemperature: double
+        - maxTemperature: double
+        - mode: OperationMode
+        - lastUpdated: LocalDateTime
+    }
+
+    Class "TemperatureRecordDto" as TempRecordDto {
+        - id: Long
+        - systemId: Long
+        - temperature: double
+        - timestamp: LocalDateTime
+        - isManualAdjustment: boolean
+        - energyConsumption: Double
+    }
+
+    Class "TemperatureAnalysisDto" as TempAnalysisDto {
+        - averageTemperature: double
+        - minTemperature: double
+        - maxTemperature: double
+        - temperatureDeviation: double
+        - dataPoints: int
+        - periodStart: LocalDateTime
+        - periodEnd: LocalDateTime
+    }
+
+    Class "EnergyEfficiencyReportDto" as EnergyReportDto {
+        - totalEnergyConsumption: double
+        - averageDailyConsumption: double
+        - efficiencyScore: int
+        - recommendations: List<String>
+        - comparisonToLastPeriod: double
+        - periodStart: LocalDateTime
+        - periodEnd: LocalDateTime
+    }
+
+    Class "TemperatureOptimizationDto" as TempOptDto {
+        - currentTargetTemperature: double
+        - recommendedTargetTemperature: double
+        - estimatedEnergySavings: double
+        - comfortImpact: String
+        - reasonForRecommendation: String
+    }
+}
+
+package "ru.yandex.practicum.smarthome.temperature.validation" {
+    Class "TemperatureValidator" as TempValidator {
+        + validateTemperatureRange(temperature: double, min: double, max: double): void
+        + validateTemperatureSystem(temperatureSystem: TemperatureSystem): void
+        + validateTemperatureSystemDto(dto: TemperatureSystemDto): void
+        - isValidTemperature(temperature: double): boolean
+        - isValidName(name: String): boolean
+    }
+}
+
+package "ru.yandex.practicum.smarthome.temperature.configuration" {
+    Class "TemperatureServiceConfig" as TempConfig {
+        + temperatureCommandService(): TemperatureCommandService
+        + temperatureQueryService(): TemperatureQueryService
+        + heatingSystemManager(): HeatingSystemManager
+        + coolingSystemManager(): CoolingSystemManager
+        + temperatureAnalytics(): TemperatureAnalytics
+        + temperatureEventPublisher(): TemperatureEventPublisher
+        + temperatureValidator(): TemperatureValidator
+    }
+
+    Class "KafkaConfig" as KafkaConfig {
+        + kafkaTemplate(): KafkaTemplate<String, TemperatureEvent>
+        + temperatureConsumerFactory(): ConsumerFactory<String, Object>
+        + deviceTemperatureKafkaListenerContainerFactory(): KafkaListenerContainerFactory<?>
+        + automationCommandKafkaListenerContainerFactory(): KafkaListenerContainerFactory<?>
+    }
+}
+
+package "ru.yandex.practicum.smarthome.temperature.client" {
+    Interface "DeviceServiceClient" as DeviceClientInterface {
+        + getDeviceState(deviceId: String): DeviceStateDto
+        + sendCommand(deviceId: String, command: DeviceCommandDto): CommandResultDto
+    }
+
+    Class "DeviceServiceClientImpl" as DeviceClientImpl {
+        - restTemplate: RestTemplate
+        - deviceServiceUrl: String
+        + getDeviceState(deviceId: String): DeviceStateDto
+        + sendCommand(deviceId: String, command: DeviceCommandDto): CommandResultDto
+        - buildUrl(path: String): String
+    }
+
+    Class "DeviceStateDto" as DeviceStateDto {
+        - id: String
+        - type: String
+        - name: String
+        - online: boolean
+        - properties: Map<String, Object>
+        - lastUpdated: LocalDateTime
+    }
+
+    Class "DeviceCommandDto" as DeviceCommandDto {
+        - command: String
+        - parameters: Map<String, Object>
+    }
+
+    Class "CommandResultDto" as CommandResultDto {
+        - success: boolean
+        - message: String
+        - timestamp: LocalDateTime
+        - resultData: Map<String, Object>
+    }
+}
+
+' Define relationships
+TempApiController --> TempCommandInterface : uses
+TempApiController --> TempQueryInterface : uses
+
+TempCommandImpl ..|> TempCommandInterface : implements
+TempCommandImpl --> TempSystemRepo : uses
+TempCommandImpl --> TempEventPublisher : uses
+TempCommandImpl --> TempValidator : uses
+TempCommandImpl --> HeatingManagerInterface : uses
+TempCommandImpl --> CoolingManagerInterface : uses
+TempCommandImpl --> TempSystemEntity : uses
+
+TempQueryImpl ..|> TempQueryInterface : implements
+TempQueryImpl --> TempSystemRepo : uses
+TempQueryImpl --> TempHistoryRepo : uses
+TempQueryImpl --> TempAnalyticsInterface : uses
+TempQueryImpl --> TempSystemEntity : uses
+TempQueryImpl --> TempRecordEntity : uses
+TempQueryImpl --> TempSystemDto : creates
+TempQueryImpl --> TempRecordDto : creates
+
+HeatingManagerImpl ..|> HeatingManagerInterface : implements
+HeatingManagerImpl --> DeviceClientInterface : uses
+HeatingManagerImpl --> TempSystemEntity : uses
+
+CoolingManagerImpl ..|> CoolingManagerInterface : implements
+CoolingManagerImpl --> DeviceClientInterface : uses
+CoolingManagerImpl --> TempSystemEntity : uses
+
+TempAnalyticsImpl ..|> TempAnalyticsInterface : implements
+TempAnalyticsImpl --> TempHistoryRepo : uses
+TempAnalyticsImpl --> TempSystemRepo : uses
+TempAnalyticsImpl --> TempRecordEntity : uses
+TempAnalyticsImpl --> TempSystemEntity : uses
+TempAnalyticsImpl --> TempAnalysisDto : creates
+TempAnalyticsImpl --> EnergyReportDto : creates
+TempAnalyticsImpl --> TempOptDto : creates
+
+TempEventConsumer --> TempCommandInterface : uses
+TempEventConsumer --> TempSystemRepo : uses
+
+TempEventPublisher --> TempEvent : creates
+
+TempSystemRepo --> TempSystemEntity : manages
+TempHistoryRepo --> TempRecordEntity : manages
+
+DeviceClientImpl ..|> DeviceClientInterface : implements
+DeviceClientImpl --> DeviceStateDto : returns
+DeviceClientImpl --> DeviceCommandDto : uses
+DeviceClientImpl --> CommandResultDto : returns
+
+TempConfig --> TempCommandImpl : configures
+TempConfig --> TempQueryImpl : configures
+TempConfig --> HeatingManagerImpl : configures
+TempConfig --> CoolingManagerImpl : configures
+TempConfig --> TempAnalyticsImpl : configures
+TempConfig --> TempEventPublisher : configures
+TempConfig --> TempValidator : configures
+
+KafkaConfig --> TempEventPublisher : configures
+KafkaConfig --> TempEventConsumer : configures
+
+@enduml

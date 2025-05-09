@@ -1,0 +1,88 @@
+@startuml C4_Component_Diagram_Devices_Management
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Component.puml
+
+' Define LAYOUT_WITH_LEGEND option
+LAYOUT_WITH_LEGEND()
+
+title "Component diagram for Smart Devices Management Service"
+
+Container_Boundary(devices_service, "Smart Devices Management Service") {
+    Component(device_api_controller, "Device API Controller", "Spring REST Controller", "REST API для управления умными устройствами")
+
+    Component(device_command_service, "Device Command Service", "Spring Service", "Обработка команд управления устройствами")
+    Component(device_query_service, "Device Query Service", "Spring Service", "Получение данных об устройствах")
+
+    Component(device_registry, "Device Registry", "Spring Service", "Регистрация и управление устройствами")
+    Component(device_state_manager, "Device State Manager", "Spring Service", "Управление состоянием устройств")
+
+    Component(protocol_adapter_manager, "Protocol Adapter Manager", "Spring Service", "Управление адаптерами протоколов")
+    Component(mqtt_adapter, "MQTT Adapter", "Protocol Adapter", "Поддержка MQTT протокола")
+    Component(zigbee_adapter, "Zigbee Adapter", "Protocol Adapter", "Поддержка Zigbee протокола")
+    Component(zwave_adapter, "Z-Wave Adapter", "Protocol Adapter", "Поддержка Z-Wave протокола")
+
+    Component(external_platform_integration, "External Platform Integration", "Spring Service", "Интеграция с внешними платформами")
+    Component(yandex_integration, "Yandex Smart Home Integration", "Integration Adapter", "Интеграция с Яндекс.Умный дом")
+    Component(google_integration, "Google Home Integration", "Integration Adapter", "Интеграция с Google Home")
+
+    Component(device_event_publisher, "Device Event Publisher", "Spring Service", "Публикация событий устройств")
+    Component(device_event_consumer, "Device Event Consumer", "Spring Service", "Получение команд для устройств")
+
+    Component(device_repository, "Device Repository", "Spring Data MongoDB", "Доступ к данным об устройствах")
+    Component(device_state_repository, "Device State Repository", "Spring Data MongoDB", "Доступ к данным о состояниях устройств")
+
+    Component(config, "Configuration", "Spring @Configuration", "Конфигурация сервиса")
+}
+
+ContainerDb(devices_db, "Devices DB", "MongoDB", "Хранит данные об устройствах и их состояниях")
+Container(api_gateway, "API Gateway", "Spring Cloud Gateway", "Единая точка входа для клиентских запросов")
+Container(kafka, "Kafka Event Bus", "Apache Kafka", "Обеспечивает асинхронную коммуникацию")
+System_Ext(smart_devices, "Умные устройства", "Физические IoT устройства")
+System_Ext(yandex_smart_home, "Яндекс.Умный дом", "Внешняя IoT платформа")
+System_Ext(google_home, "Google Home", "Внешняя IoT платформа")
+Container(automation_service, "Automation Service", "Spring Boot", "Управление автоматизацией и сценариями")
+
+' External relationships
+Rel(api_gateway, device_api_controller, "HTTP/REST", "Запросы управления устройствами")
+Rel_D(device_repository, devices_db, "MongoDB Driver", "Чтение/запись данных об устройствах")
+Rel_D(device_state_repository, devices_db, "MongoDB Driver", "Чтение/запись данных о состояниях")
+Rel_R(device_event_publisher, kafka, "Публикует", "События устройств")
+Rel_L(device_event_consumer, kafka, "Подписывается", "Команды для устройств")
+Rel_D(mqtt_adapter, smart_devices, "MQTT", "Обмен данными с устройствами")
+Rel_D(zigbee_adapter, smart_devices, "Zigbee", "Обмен данными с устройствами")
+Rel_D(zwave_adapter, smart_devices, "Z-Wave", "Обмен данными с устройствами")
+Rel_R(yandex_integration, yandex_smart_home, "API", "Интеграция с Яндекс")
+Rel_R(google_integration, google_home, "API", "Интеграция с Google")
+Rel_L(automation_service, devices_service, "HTTP/REST", "Команды управления устройствами по сценариям")
+
+' Internal relationships
+Rel(device_api_controller, device_command_service, "Вызывает", "Передача команд управления")
+Rel(device_api_controller, device_query_service, "Вызывает", "Запросы данных")
+
+Rel(device_command_service, device_state_manager, "Вызывает", "Изменение состояния устройств")
+Rel(device_command_service, protocol_adapter_manager, "Вызывает", "Отправка команд устройствам")
+Rel(device_command_service, device_event_publisher, "Вызывает", "Публикация событий изменения состояния")
+
+Rel(device_query_service, device_repository, "Вызывает", "Запросы данных об устройствах")
+Rel(device_query_service, device_state_repository, "Вызывает", "Запросы о состояниях устройств")
+
+Rel(device_registry, device_repository, "Вызывает", "Управление устройствами в БД")
+Rel(device_state_manager, device_state_repository, "Вызывает", "Управление состояниями в БД")
+
+Rel(protocol_adapter_manager, mqtt_adapter, "Управляет")
+Rel(protocol_adapter_manager, zigbee_adapter, "Управляет")
+Rel(protocol_adapter_manager, zwave_adapter, "Управляет")
+
+Rel(external_platform_integration, yandex_integration, "Управляет")
+Rel(external_platform_integration, google_integration, "Управляет")
+Rel(external_platform_integration, device_state_manager, "Вызывает", "Обновление состояний")
+
+Rel(device_event_consumer, device_command_service, "Вызывает", "Передача команд от внешних систем")
+Rel(device_event_consumer, device_state_manager, "Вызывает", "Обновление состояний по событиям")
+
+Rel(config, device_command_service, "Конфигурирует")
+Rel(config, protocol_adapter_manager, "Конфигурирует")
+Rel(config, external_platform_integration, "Конфигурирует")
+Rel(config, device_event_publisher, "Конфигурирует")
+Rel(config, device_event_consumer, "Конфигурирует")
+
+@enduml

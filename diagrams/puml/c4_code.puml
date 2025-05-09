@@ -1,0 +1,94 @@
+@startuml C4_Container_Diagram_Revised
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+
+' Define LAYOUT_WITH_LEGEND option
+LAYOUT_WITH_LEGEND()
+
+title "Container diagram for Smart Home Microservices Architecture"
+
+Person(homeowner, "Домовладелец", "Пользователь, управляющий умным домом")
+
+System_Boundary(smart_home_system, "Smart Home System") {
+    ' API Gateway & Auth
+    Container(api_gateway, "API Gateway", "Spring Cloud Gateway", "Единая точка входа для всех клиентских запросов, маршрутизация")
+
+    ' User Management Service
+    Container(user_service, "User Management Service", "Spring Boot, Java", "Регистрация, аутентификация и авторизация пользователей")
+    ContainerDb(user_db, "User DB", "PostgreSQL", "Хранит данные пользователей, роли и разрешения")
+
+    ' Temperature Management Service
+    Container(temperature_service, "Temperature Management Service", "Spring Boot, Java", "Управление температурой, основной продающий домен")
+    ContainerDb(temperature_db, "Temperature DB", "PostgreSQL", "Хранит данные о температуре, настройках и истории")
+
+    ' Smart Devices Management Service
+    Container(devices_service, "Smart Devices Management Service", "Spring Boot, Java", "Управление умными устройствами, интеграция с внешними платформами")
+    ContainerDb(devices_db, "Devices DB", "MongoDB", "Хранит данные об устройствах и их состояниях")
+
+    ' Automation Service
+    Container(automation_service, "Automation Service", "Spring Boot, Java", "Создание и выполнение сценариев автоматизации и расписаний")
+    ContainerDb(automation_db, "Automation DB", "PostgreSQL", "Хранит сценарии, расписания и правила автоматизации")
+
+    ' Event Processing Service
+    Container(event_service, "Event Processing Service", "Spring Boot, Java", "Обработка событий от устройств и систем")
+
+    ' Logging Service
+    Container(logging_service, "Logging Service", "ELK Stack", "Сбор, хранение и анализ логов системы")
+    ContainerDb(logging_db, "Logging DB", "Elasticsearch", "Хранение и индексирование логов")
+
+    ' Analytics Service
+    Container(analytics_service, "Analytics Service", "Spring Boot, Python", "Анализ данных и генерация инсайтов")
+    ContainerDb(analytics_db, "Analytics DB", "ClickHouse", "Хранение и обработка аналитических данных")
+
+    ' Notification Service
+    Container(notification_service, "Notification Service", "Spring Boot, Java", "Отправка уведомлений пользователям")
+
+    ' Message Brokers
+    Container(kafka, "Kafka Event Bus", "Apache Kafka", "Обеспечивает асинхронную коммуникацию между микросервисами")
+}
+
+' External Systems
+System_Ext(mobile_app, "Мобильное приложение", "iOS/Android приложение")
+System_Ext(web_browser, "Веб-браузер", "Веб-интерфейс системы")
+System_Ext(smart_devices, "Умные устройства", "Физические IoT устройства")
+System_Ext(external_iot_platforms, "Внешние IoT платформы", "Яндекс.Умный дом, Google Home, etc.")
+
+' Relationships with external systems
+Rel(homeowner, mobile_app, "Использует")
+Rel(homeowner, web_browser, "Использует")
+Rel(mobile_app, api_gateway, "HTTP/REST API", "JSON/HTTPS")
+Rel(web_browser, api_gateway, "HTTP/REST API", "JSON/HTTPS")
+Rel(smart_devices, devices_service, "MQTT/HTTP", "Отправляет данные и получает команды")
+Rel_Neighbor(devices_service, external_iot_platforms, "API интеграция", "REST/HTTPS")
+
+' API Gateway relationships
+Rel(api_gateway, user_service, "HTTP/REST", "Запросы авторизации и управления пользователями")
+Rel(api_gateway, temperature_service, "HTTP/REST", "Запросы управления температурой")
+Rel(api_gateway, devices_service, "HTTP/REST", "Запросы управления устройствами")
+Rel(api_gateway, automation_service, "HTTP/REST", "Запросы управления автоматизацией")
+Rel(api_gateway, analytics_service, "HTTP/REST", "Запросы аналитики и статистики")
+
+' Database relationships
+Rel_D(user_service, user_db, "JDBC/JPA", "Хранение данных пользователей")
+Rel_D(temperature_service, temperature_db, "JDBC/JPA", "Хранение данных о температуре")
+Rel_D(devices_service, devices_db, "MongoDB Driver", "Хранение данных об устройствах")
+Rel_D(automation_service, automation_db, "JDBC/JPA", "Хранение сценариев автоматизации")
+Rel_D(logging_service, logging_db, "Elasticsearch API", "Индексирование логов")
+Rel_D(analytics_service, analytics_db, "JDBC Driver", "Аналитическая обработка данных")
+
+' Kafka event bus relationships
+Rel(temperature_service, kafka, "Публикует/Подписывается", "События изменения температуры")
+Rel(devices_service, kafka, "Публикует/Подписывается", "События устройств, команды управления")
+Rel(automation_service, kafka, "Публикует/Подписывается", "События запуска сценариев")
+Rel(event_service, kafka, "Подписывается", "Обработка всех событий системы")
+Rel(logging_service, kafka, "Подписывается", "Сбор логов операций и событий")
+Rel(analytics_service, kafka, "Подписывается", "Сбор данных для аналитики")
+Rel(notification_service, kafka, "Подписывается", "События для отправки уведомлений")
+
+' Service-to-Service relationships
+Rel(automation_service, temperature_service, "HTTP/REST", "Управление температурой по сценариям")
+Rel(automation_service, devices_service, "HTTP/REST", "Управление устройствами по сценариям")
+Rel(event_service, notification_service, "HTTP/REST", "Запрос отправки уведомлений")
+Rel(analytics_service, event_service, "HTTP/REST", "Получение обработанных событий")
+Rel(user_service, notification_service, "HTTP/REST", "Настройки уведомлений пользователей")
+
+@enduml

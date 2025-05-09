@@ -1,0 +1,78 @@
+@startuml C4_Component_Diagram_Event_Processing
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Component.puml
+
+' Define LAYOUT_WITH_LEGEND option
+LAYOUT_WITH_LEGEND()
+
+title "Component diagram for Event Processing Service"
+
+Container_Boundary(event_service, "Event Processing Service") {
+    Component(event_api_controller, "Event API Controller", "Spring REST Controller", "REST API для доступа к событиям")
+
+    Component(event_processor, "Event Processor", "Spring Service", "Основной компонент обработки событий")
+    Component(event_router, "Event Router", "Spring Service", "Маршрутизация событий между компонентами")
+
+    Component(device_event_handler, "Device Event Handler", "Spring Service", "Обработка событий от устройств")
+    Component(temperature_event_handler, "Temperature Event Handler", "Spring Service", "Обработка событий изменения температуры")
+    Component(user_event_handler, "User Event Handler", "Spring Service", "Обработка событий пользователей")
+    Component(automation_event_handler, "Automation Event Handler", "Spring Service", "Обработка событий автоматизации")
+
+    Component(event_enricher, "Event Enricher", "Spring Service", "Обогащение событий дополнительными данными")
+    Component(event_correlator, "Event Correlator", "Spring Service", "Корреляция связанных событий")
+    Component(alert_generator, "Alert Generator", "Spring Service", "Генерация оповещений на основе событий")
+
+    Component(event_consumer, "Event Consumer", "Spring Kafka", "Получение событий из Kafka")
+    Component(event_publisher, "Event Publisher", "Spring Kafka", "Публикация обработанных событий")
+
+    Component(event_repository, "Event Repository", "Spring Data ES", "Хранение и поиск событий")
+    Component(alert_repository, "Alert Repository", "Spring Data ES", "Хранение и поиск оповещений")
+
+    Component(config, "Configuration", "Spring @Configuration", "Конфигурация сервиса")
+}
+
+Container(kafka, "Kafka Event Bus", "Apache Kafka", "Обеспечивает асинхронную коммуникацию")
+Container(api_gateway, "API Gateway", "Spring Cloud Gateway", "Единая точка входа для клиентских запросов")
+ContainerDb(elasticsearch, "Elasticsearch", "Elasticsearch", "Хранение и индексирование событий и логов")
+Container(notification_service, "Notification Service", "Spring Boot", "Отправка уведомлений пользователям")
+Container(analytics_service, "Analytics Service", "Spring Boot", "Анализ данных и статистика")
+
+' External relationships
+Rel(api_gateway, event_api_controller, "HTTP/REST", "Запросы к данным о событиях")
+Rel_R(event_consumer, kafka, "Подписывается", "Получение всех типов событий из системы")
+Rel_L(event_publisher, kafka, "Публикует", "Публикация обработанных событий")
+Rel_D(event_repository, elasticsearch, "Elasticsearch API", "Хранение и индексирование событий")
+Rel_D(alert_repository, elasticsearch, "Elasticsearch API", "Хранение и индексирование оповещений")
+Rel_R(alert_generator, notification_service, "HTTP/REST", "Запросы отправки уведомлений")
+Rel_L(analytics_service, event_service, "HTTP/REST", "Получение данных о событиях для анализа")
+
+' Internal relationships
+Rel(event_api_controller, event_processor, "Вызывает", "Запросы к обработанным событиям")
+Rel(event_api_controller, event_repository, "Вызывает", "Поиск и получение событий")
+
+Rel(event_consumer, event_router, "Передает", "Маршрутизация входящих событий")
+
+Rel(event_router, device_event_handler, "Маршрутизирует", "События устройств")
+Rel(event_router, temperature_event_handler, "Маршрутизирует", "События температуры")
+Rel(event_router, user_event_handler, "Маршрутизирует", "События пользователей")
+Rel(event_router, automation_event_handler, "Маршрутизирует", "События автоматизации")
+
+Rel(device_event_handler, event_processor, "Вызывает", "Обработка событий")
+Rel(temperature_event_handler, event_processor, "Вызывает", "Обработка событий")
+Rel(user_event_handler, event_processor, "Вызывает", "Обработка событий")
+Rel(automation_event_handler, event_processor, "Вызывает", "Обработка событий")
+
+Rel(event_processor, event_enricher, "Вызывает", "Обогащение событий")
+Rel(event_processor, event_correlator, "Вызывает", "Корреляция событий")
+Rel(event_processor, alert_generator, "Вызывает", "Генерация оповещений")
+Rel(event_processor, event_repository, "Вызывает", "Сохранение событий")
+Rel(event_processor, event_publisher, "Вызывает", "Публикация обработанных событий")
+
+Rel(alert_generator, alert_repository, "Вызывает", "Сохранение оповещений")
+
+Rel(config, event_consumer, "Конфигурирует")
+Rel(config, event_publisher, "Конфигурирует")
+Rel(config, event_processor, "Конфигурирует")
+Rel(config, event_router, "Конфигурирует")
+Rel(config, alert_generator, "Конфигурирует")
+
+@enduml

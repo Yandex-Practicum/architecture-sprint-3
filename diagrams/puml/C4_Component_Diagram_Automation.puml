@@ -1,0 +1,85 @@
+@startuml C4_Component_Diagram_Automation
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Component.puml
+
+' Define LAYOUT_WITH_LEGEND option
+LAYOUT_WITH_LEGEND()
+
+title "Component diagram for Automation Service"
+
+Container_Boundary(automation_service, "Automation Service") {
+    Component(automation_api_controller, "Automation API Controller", "Spring REST Controller", "REST API для управления автоматизацией")
+
+    Component(scenario_service, "Scenario Service", "Spring Service", "Управление сценариями автоматизации")
+    Component(scheduler_service, "Scheduler Service", "Spring Service", "Управление расписаниями и планировщиком")
+
+    Component(rule_engine, "Rule Engine", "Spring Service", "Движок правил для выполнения сценариев")
+    Component(condition_evaluator, "Condition Evaluator", "Spring Service", "Оценка условий для запуска сценариев")
+    Component(action_executor, "Action Executor", "Spring Service", "Выполнение действий сценариев")
+
+    Component(device_command_client, "Device Command Client", "RestTemplate/WebClient", "Клиент для управления устройствами")
+    Component(temperature_command_client, "Temperature Command Client", "RestTemplate/WebClient", "Клиент для управления температурой")
+
+    Component(event_trigger, "Event Trigger", "Spring Service", "Запуск сценариев по событиям")
+    Component(event_publisher, "Event Publisher", "Spring Service", "Публикация событий автоматизации")
+    Component(event_consumer, "Event Consumer", "Spring Service", "Получение событий для автоматизации")
+
+    Component(automation_repository, "Automation Repository", "Spring Data JPA", "Доступ к данным о сценариях")
+    Component(schedule_repository, "Schedule Repository", "Spring Data JPA", "Доступ к данным о расписаниях")
+    Component(execution_history_repository, "Execution History Repository", "Spring Data JPA", "Доступ к истории выполнения")
+
+    Component(config, "Configuration", "Spring @Configuration", "Конфигурация сервиса")
+}
+
+ContainerDb(automation_db, "Automation DB", "PostgreSQL", "Хранит сценарии, расписания и историю выполнения")
+Container(api_gateway, "API Gateway", "Spring Cloud Gateway", "Единая точка входа для клиентских запросов")
+Container(kafka, "Kafka Event Bus", "Apache Kafka", "Обеспечивает асинхронную коммуникацию")
+Container(devices_service, "Smart Devices Management Service", "Spring Boot", "Управление умными устройствами")
+Container(temperature_service, "Temperature Management Service", "Spring Boot", "Управление температурными системами")
+Container(user_service, "User Management Service", "Spring Boot", "Управление пользователями")
+
+' External relationships
+Rel(api_gateway, automation_api_controller, "HTTP/REST", "Запросы управления автоматизацией")
+Rel_D(automation_repository, automation_db, "JDBC/JPA", "Чтение/запись данных о сценариях")
+Rel_D(schedule_repository, automation_db, "JDBC/JPA", "Чтение/запись данных о расписаниях")
+Rel_D(execution_history_repository, automation_db, "JDBC/JPA", "Чтение/запись истории выполнения")
+Rel_R(event_publisher, kafka, "Публикует", "События автоматизации")
+Rel_L(event_consumer, kafka, "Подписывается", "События для запуска сценариев")
+Rel_D(device_command_client, devices_service, "HTTP/REST", "Команды управления устройствами")
+Rel_D(temperature_command_client, temperature_service, "HTTP/REST", "Команды управления температурой")
+Rel_U(user_service, automation_service, "HTTP/REST", "Проверка прав пользователей")
+
+' Internal relationships
+Rel(automation_api_controller, scenario_service, "Вызывает", "Управление сценариями")
+Rel(automation_api_controller, scheduler_service, "Вызывает", "Управление расписаниями")
+
+Rel(scenario_service, automation_repository, "Вызывает", "Чтение/запись сценариев")
+Rel(scenario_service, rule_engine, "Вызывает", "Тестирование и выполнение сценариев")
+Rel(scenario_service, execution_history_repository, "Вызывает", "Запись истории выполнения")
+
+Rel(scheduler_service, schedule_repository, "Вызывает", "Чтение/запись расписаний")
+Rel(scheduler_service, rule_engine, "Вызывает", "Запуск сценариев по расписанию")
+Rel(scheduler_service, execution_history_repository, "Вызывает", "Запись истории выполнения")
+
+Rel(rule_engine, condition_evaluator, "Вызывает", "Проверка условий")
+Rel(rule_engine, action_executor, "Вызывает", "Выполнение действий")
+Rel(rule_engine, event_publisher, "Вызывает", "Публикация событий о выполнении")
+
+Rel(condition_evaluator, device_command_client, "Вызывает", "Проверка состояния устройств")
+Rel(condition_evaluator, temperature_command_client, "Вызывает", "Проверка температуры")
+
+Rel(action_executor, device_command_client, "Вызывает", "Отправка команд устройствам")
+Rel(action_executor, temperature_command_client, "Вызывает", "Отправка команд температурным системам")
+
+Rel(event_trigger, rule_engine, "Вызывает", "Запуск сценариев по событиям")
+Rel(event_trigger, event_consumer, "Использует", "Получение и обработка событий")
+Rel(event_trigger, execution_history_repository, "Вызывает", "Запись истории выполнения")
+
+Rel(config, scenario_service, "Конфигурирует")
+Rel(config, scheduler_service, "Конфигурирует")
+Rel(config, rule_engine, "Конфигурирует")
+Rel(config, device_command_client, "Конфигурирует")
+Rel(config, temperature_command_client, "Конфигурирует")
+Rel(config, event_publisher, "Конфигурирует")
+Rel(config, event_consumer, "Конфигурирует")
+
+@enduml
