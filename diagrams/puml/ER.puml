@@ -1,0 +1,212 @@
+@startuml
+' Настройки отображения
+hide circle
+skinparam linetype ortho
+
+' Сущности
+entity User {
+  * id : number <<generated>>
+  --
+  * email : varchar
+  * password_hash : varchar
+  first_name : varchar
+  last_name : varchar
+  phone : varchar
+  * created_at : timestamp
+  is_active : boolean
+}
+
+entity House {
+  * id : number <<generated>>
+  --
+  * name : varchar
+  * address : varchar
+  city : varchar
+  country : varchar
+  timezone : varchar
+  * created_at : timestamp
+}
+
+' Промежуточная сущность для связи многие-ко-многим
+entity UserHouse {
+  * user_id : number <<FK>>
+  * house_id : number <<FK>>
+  --
+  * role_type : varchar <<"owner/member/guest">>
+  * access_level : integer
+  added_at : timestamp
+  added_by : number <<FK>>
+}
+
+entity Role {
+  * id : number <<generated>>
+  --
+  * name : varchar
+  * permissions : json
+  description : varchar
+}
+
+entity Room {
+  * id : number <<generated>>
+  --
+  * name : varchar
+  * house_id : number <<FK>>
+  floor : integer
+  area_sqm : float
+  type : varchar <<"bedroom/kitchen/bathroom">>
+}
+
+entity DeviceType {
+  * id : number <<generated>>
+  --
+  * name : varchar
+  * category : varchar <<"sensor/switch/climate/light">>
+  manufacturer : varchar
+  model : varchar
+  * capabilities : json
+}
+
+entity Device {
+  * id : number <<generated>>
+  --
+  * name : varchar
+  * type_id : number <<FK>>
+  * house_id : number <<FK>>
+  room_id : number <<FK>>
+  serial_number : varchar
+  ip_address : varchar
+  mac_address : varchar
+  * status : varchar <<"online/offline/error">>
+  * created_at : timestamp
+  last_seen : timestamp
+}
+
+entity Module {
+  * id : number <<generated>>
+  --
+  * name : varchar
+  * device_id : number <<FK>>
+  type : varchar
+  version : varchar
+  is_active : boolean
+}
+
+entity TelemetryData {
+  * id : number <<generated>>
+  --
+  * device_id : number <<FK>>
+  * module_id : number <<FK>>
+  * metric_type : varchar
+  * value : float
+  * timestamp : timestamp
+}
+
+entity Report {
+  * id : number <<generated>>
+  --
+  * house_id : number <<FK>>
+  * period_from : timestamp
+  * period_to : timestamp
+  * type : varchar <<"energy/temperature/usage">>
+  status : varchar <<"pending/completed/error">>
+  generated_by : number <<FK>>
+  * created_at : timestamp
+  data : json
+}
+
+entity Notification {
+  * id : number <<generated>>
+  --
+  * user_id : number <<FK>>
+  * title : varchar
+  * message : text
+  * type : varchar <<"system/device/automation/security">>
+  is_read : boolean
+  * created_at : timestamp
+  read_at : timestamp
+}
+
+entity Scenario {
+  * id : number <<generated>>
+  --
+  * name : varchar
+  * house_id : number <<FK>>
+  * created_by : number <<FK>>
+  * is_active : boolean
+  * trigger_type : varchar <<"manual/scheduled/event">>
+  actions : json
+  * created_at : timestamp
+}
+
+' Специализированные типы устройств
+entity SensorDevice {
+  * id : number <<FK>>
+  --
+  measurement_unit : varchar
+  accuracy : float
+  min_value : float
+  max_value : float
+}
+
+entity ClimateDevice {
+  * id : number <<FK>>
+  --
+  * current_temperature : float
+  * target_temperature : float
+  min_temperature : float
+  max_temperature : float
+  mode : varchar <<"heat/cool/auto">>
+}
+
+entity SwitchDevice {
+  * id : number <<FK>>
+  --
+  max_power : float
+  * current_state : boolean
+  auto_off_timeout : integer
+}
+
+' Связи
+User }o--o{ UserHouse
+House }o--o{ UserHouse
+UserHouse }|--|| Role : "определяет права"
+
+House ||--o{ Room : "содержит"
+House ||--o{ Device : "содержит"
+Room ||--o{ Device : "содержит"
+
+DeviceType ||--o{ Device : "определяет тип"
+Device ||--o{ Module : "содержит"
+Device ||--o{ TelemetryData : "генерирует"
+Module ||--o{ TelemetryData : "генерирует"
+
+User ||--o{ Notification : "получает"
+User }|--o{ Report : "генерирует"
+User }|--o{ Scenario : "создает"
+
+House ||--o{ Report : "относится к"
+House ||--o{ Scenario : "относится к"
+
+' Наследование типов устройств
+Device }|-- SensorDevice
+Device }|-- ClimateDevice
+Device }|-- SwitchDevice
+
+legend right
+  <b>ER-диаграмма системы умного дома</b>
+
+  Основные сущности:
+  - User - пользователи системы
+  - House - дома под управлением системы
+  - Device - устройства умного дома
+  - Module - функциональные модули устройств
+  - TelemetryData - данные телеметрии с устройств
+  - Scenario - сценарии автоматизации
+
+  Ключевые особенности:
+  - Многие-ко-многим между User и House
+  - Иерархия наследования для типов устройств
+  - Модульная структура устройств
+  - Детальная телеметрия и отчетность
+endlegend
+@enduml
