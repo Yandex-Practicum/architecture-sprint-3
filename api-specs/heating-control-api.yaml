@@ -1,0 +1,378 @@
+openapi: 3.0.0
+info:
+  title: Heating Control Service API
+  description: API для управления отоплением в системе "Тёплый дом"
+  version: 1.0.0
+servers:
+  - url: 'https://api.warm-house.com/api/v1'
+    description: Основной API сервер
+
+security:
+  - bearerAuth: []
+
+tags:
+  - name: "1. Системы отопления"
+    description: "Получение информации о системах отопления"
+  - name: "2. Управление температурой"
+    description: "Управление температурными настройками"
+  - name: "3. Управление состоянием"
+    description: "Включение/выключение отопления"
+
+paths:
+  /heating/systems/{system_id}:
+    get:
+      tags: ["1. Системы отопления"]
+      summary: Получение информации о системе отопления
+      description: Возвращает текущее состояние и настройки системы отопления
+      parameters:
+        - name: system_id
+          in: path
+          description: ID системы отопления
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Успешный ответ с информацией о системе отопления
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HeatingSystem'
+              example:
+                id: 1
+                device_id: 5
+                house_id: 2
+                room_id: 3
+                is_on: true
+                current_temperature: 21.5
+                target_temperature: 22.0
+                mode: "auto"
+                schedule_id: 4
+                power_consumption: 1.2
+                last_updated: "2023-10-15T14:35:20Z"
+        '401':
+          description: Необходима авторизация
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                code: "UNAUTHORIZED"
+                message: "Требуется авторизация"
+        '403':
+          description: Недостаточно прав для просмотра
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                code: "FORBIDDEN"
+                message: "Недостаточно прав для просмотра системы отопления"
+        '404':
+          description: Система отопления не найдена
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                code: "HEATING_SYSTEM_NOT_FOUND"
+                message: "Система отопления с ID 123 не найдена"
+                details:
+                  system_id: 123
+        '500':
+          description: Внутренняя ошибка сервера
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                code: "INTERNAL_ERROR"
+                message: "Внутренняя ошибка сервера"
+
+  /heating/systems/{system_id}/temperature:
+    put:
+      tags: ["2. Управление температурой"]
+      summary: Установка целевой температуры
+      description: Изменяет заданную температуру для конкретной системы отопления
+      parameters:
+        - name: system_id
+          in: path
+          description: ID системы отопления
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - target_temperature
+              properties:
+                target_temperature:
+                  type: number
+                  format: float
+                  description: Целевая температура в градусах Цельсия
+            examples:
+              normal_temperature:
+                summary: "Стандартная температура"
+                value:
+                  target_temperature: 23.5
+              eco_temperature:
+                summary: "Экономичная температура"
+                value:
+                  target_temperature: 18.0
+              comfort_temperature:
+                summary: "Комфортная температура"
+                value:
+                  target_temperature: 25.0
+      responses:
+        '200':
+          description: Температура успешно обновлена
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  target_temperature:
+                    type: number
+                    format: float
+                  system_id:
+                    type: integer
+              example:
+                success: true
+                target_temperature: 23.5
+                system_id: 1
+        '400':
+          description: Некорректные данные запроса
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                invalid_temperature:
+                  summary: "Температура вне допустимого диапазона"
+                  value:
+                    code: "INVALID_TEMPERATURE"
+                    message: "Температура должна быть в диапазоне 5-30°C"
+                    details:
+                      parameter: "target_temperature"
+                      value: 35.0
+                      allowed_range: "5-30°C"
+                missing_temperature:
+                  summary: "Отсутствует температура"
+                  value:
+                    code: "MISSING_FIELD"
+                    message: "Не указана целевая температура"
+                    details:
+                      field: "target_temperature"
+        '401':
+          description: Необходима авторизация
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                code: "UNAUTHORIZED"
+                message: "Требуется авторизация"
+        '403':
+          description: Недостаточно прав для управления
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                code: "FORBIDDEN"
+                message: "Недостаточно прав для управления системой отопления"
+        '404':
+          description: Система отопления не найдена
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                code: "HEATING_SYSTEM_NOT_FOUND"
+                message: "Система отопления с ID 123 не найдена"
+                details:
+                  system_id: 123
+        '500':
+          description: Внутренняя ошибка сервера
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                code: "INTERNAL_ERROR"
+                message: "Внутренняя ошибка сервера"
+
+  /heating/systems/{system_id}/state:
+    put:
+      tags: ["3. Управление состоянием"]
+      summary: Включение/выключение системы отопления
+      description: Изменяет состояние работы системы отопления
+      parameters:
+        - name: system_id
+          in: path
+          description: ID системы отопления
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - is_on
+              properties:
+                is_on:
+                  type: boolean
+                  description: Флаг включения/выключения
+            examples:
+              turn_on:
+                summary: "Включение системы"
+                value:
+                  is_on: true
+              turn_off:
+                summary: "Выключение системы"
+                value:
+                  is_on: false
+      responses:
+        '200':
+          description: Состояние успешно обновлено
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  is_on:
+                    type: boolean
+                  system_id:
+                    type: integer
+              example:
+                success: true
+                is_on: true
+                system_id: 1
+        '400':
+          description: Некорректные данные запроса
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                code: "MISSING_FIELD"
+                message: "Не указан статус включения/выключения"
+                details:
+                  field: "is_on"
+        '401':
+          description: Необходима авторизация
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                code: "UNAUTHORIZED"
+                message: "Требуется авторизация"
+        '403':
+          description: Недостаточно прав для управления
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                code: "FORBIDDEN"
+                message: "Недостаточно прав для управления системой отопления"
+        '404':
+          description: Система отопления не найдена
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                code: "HEATING_SYSTEM_NOT_FOUND"
+                message: "Система отопления с ID 123 не найдена"
+                details:
+                  system_id: 123
+        '500':
+          description: Внутренняя ошибка сервера
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                code: "INTERNAL_ERROR"
+                message: "Внутренняя ошибка сервера"
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT токен авторизации. Формат: Bearer {token}
+
+  schemas:
+    Error:
+      type: object
+      required:
+        - code
+        - message
+      properties:
+        code:
+          type: string
+          description: Код ошибки
+        message:
+          type: string
+          description: Сообщение об ошибке
+        details:
+          type: object
+          description: Дополнительные детали ошибки
+
+    HeatingSystem:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: Уникальный идентификатор системы отопления
+        device_id:
+          type: integer
+          description: ID связанного устройства
+        house_id:
+          type: integer
+          description: ID дома
+        room_id:
+          type: integer
+          nullable: true
+          description: ID комнаты
+        is_on:
+          type: boolean
+          description: Включено или выключено отопление
+        current_temperature:
+          type: number
+          format: float
+          description: Текущая температура в помещении
+        target_temperature:
+          type: number
+          format: float
+          description: Целевая температура
+        mode:
+          type: string
+          description: Режим работы (manual, auto, eco, away)
+        schedule_id:
+          type: integer
+          nullable: true
+          description: ID расписания, если используется
+        power_consumption:
+          type: number
+          format: float
+          description: Текущее энергопотребление в кВт
+        last_updated:
+          type: string
+          format: date-time
+          description: Время последнего обновления данных 

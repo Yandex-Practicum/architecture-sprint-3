@@ -1,0 +1,371 @@
+asyncapi: 2.5.0
+info:
+  title: Smart Home Device Events API
+  version: 1.0.0
+  description: Асинхронный API для обмена событиями между микросервисами в системе "Тёплый дом"
+
+servers:
+  production:
+    url: kafka.warm-house.com:9092
+    protocol: kafka
+    description: Основной Kafka-брокер
+    security:
+      - tokenAuth: []
+
+channels:
+  device.events:
+    description: Канал для событий, связанных с изменением состояния устройств
+    publish:
+      summary: Публикация события об изменении состояния устройства
+      operationId: publishDeviceEvent
+      security:
+        - tokenAuth: [device.events:publish]
+      message:
+        $ref: '#/components/messages/DeviceStateChangedEvent'
+    subscribe:
+      summary: Подписка на события об изменении состояния устройств
+      operationId: subscribeToDeviceEvents
+      security:
+        - tokenAuth: [device.events:subscribe]
+      message:
+        $ref: '#/components/messages/DeviceStateChangedEvent'
+
+  telemetry.events:
+    description: Канал для телеметрических данных с устройств
+    publish:
+      summary: Публикация телеметрических данных
+      operationId: publishTelemetry
+      security:
+        - tokenAuth: [telemetry.events:publish]
+      message:
+        $ref: '#/components/messages/TelemetryEvent'
+    subscribe:
+      summary: Подписка на телеметрические данные
+      operationId: subscribeToTelemetry
+      security:
+        - tokenAuth: [telemetry.events:subscribe]
+      message:
+        $ref: '#/components/messages/TelemetryEvent'
+
+  automation.events:
+    description: Канал для событий автоматизации
+    publish:
+      summary: Публикация события активации сценария автоматизации
+      operationId: publishAutomationEvent
+      security:
+        - tokenAuth: [automation.events:publish]
+      message:
+        $ref: '#/components/messages/AutomationEvent'
+    subscribe:
+      summary: Подписка на события автоматизации
+      operationId: subscribeToAutomationEvents
+      security:
+        - tokenAuth: [automation.events:subscribe]
+      message:
+        $ref: '#/components/messages/AutomationEvent'
+
+  error.events:
+    description: Канал для событий ошибок
+    publish:
+      summary: Публикация события ошибки
+      operationId: publishErrorEvent
+      security:
+        - tokenAuth: [error.events:publish]
+      message:
+        $ref: '#/components/messages/ErrorEvent'
+    subscribe:
+      summary: Подписка на события ошибок
+      operationId: subscribeToErrorEvents
+      security:
+        - tokenAuth: [error.events:subscribe]
+      message:
+        $ref: '#/components/messages/ErrorEvent'
+
+components:
+  securitySchemes:
+    tokenAuth:
+      type: oauth2
+      description: JWT авторизация для подключения к Kafka
+      flows:
+        clientCredentials:
+          tokenUrl: https://auth.warm-house.com/token
+          scopes:
+            device.events:publish: Публикация событий устройств
+            device.events:subscribe: Подписка на события устройств
+            telemetry.events:publish: Публикация телеметрии
+            telemetry.events:subscribe: Подписка на телеметрию
+            automation.events:publish: Публикация событий автоматизации
+            automation.events:subscribe: Подписка на события автоматизации
+            error.events:publish: Публикация событий ошибок
+            error.events:subscribe: Подписка на события ошибок
+
+  messages:
+    DeviceStateChangedEvent:
+      name: device.state.changed
+      title: Событие изменения состояния устройства
+      contentType: application/json
+      payload:
+        type: object
+        required:
+          - event_id
+          - device_id
+          - event_type
+          - timestamp
+          - data
+        properties:
+          event_id:
+            type: string
+            description: Уникальный идентификатор события
+          device_id:
+            type: integer
+            description: ID устройства
+          event_type:
+            type: string
+            description: Тип события (online, offline, state_changed, error)
+          timestamp:
+            type: string
+            format: date-time
+            description: Время события в формате ISO 8601
+          data:
+            type: object
+            description: Данные о состоянии устройства
+            properties:
+              status:
+                type: string
+                description: Новый статус устройства
+              old_status:
+                type: string
+                description: Предыдущий статус устройства
+              state:
+                type: object
+                description: Дополнительная информация о состоянии
+      examples:
+        - payload:
+            event_id: "evt-789012"
+            device_id: 5
+            event_type: "state_changed"
+            timestamp: "2023-10-15T14:36:12Z"
+            data:
+              status: "online"
+              old_status: "offline"
+              state:
+                is_on: true
+                temperature: 22.5
+        - payload:
+            event_id: "evt-789013"
+            device_id: 7
+            event_type: "error"
+            timestamp: "2023-10-15T14:36:15Z"
+            data:
+              status: "error"
+              old_status: "online"
+              state:
+                error_code: "CONNECTION_LOST"
+                error_message: "Соединение с устройством потеряно"
+
+    TelemetryEvent:
+      name: device.telemetry
+      title: Телеметрические данные с устройства
+      contentType: application/json
+      payload:
+        type: object
+        required:
+          - event_id
+          - device_id
+          - timestamp
+          - metrics
+        properties:
+          event_id:
+            type: string
+            description: Уникальный идентификатор события
+          device_id:
+            type: integer
+            description: ID устройства
+          timestamp:
+            type: string
+            format: date-time
+            description: Время измерения
+          metrics:
+            type: array
+            description: Массив метрик
+            items:
+              type: object
+              required:
+                - name
+                - value
+              properties:
+                name:
+                  type: string
+                  description: Название метрики
+                value:
+                  type: number
+                  description: Значение метрики
+                unit:
+                  type: string
+                  description: Единица измерения
+      examples:
+        - payload:
+            event_id: "evt-789013"
+            device_id: 5
+            timestamp: "2023-10-15T14:36:12Z"
+            metrics:
+              - name: "temperature"
+                value: 22.5
+                unit: "°C"
+              - name: "humidity"
+                value: 45
+                unit: "%"
+              - name: "power_consumption"
+                value: 0.8
+                unit: "kW"
+        - payload:
+            event_id: "evt-789014"
+            device_id: 8
+            timestamp: "2023-10-15T14:36:15Z"
+            metrics:
+              - name: "brightness"
+                value: 80
+                unit: "%"
+              - name: "power_consumption"
+                value: 0.2
+                unit: "kW"
+
+    AutomationEvent:
+      name: automation.triggered
+      title: Событие активации сценария автоматизации
+      contentType: application/json
+      payload:
+        type: object
+        required:
+          - event_id
+          - automation_id
+          - house_id
+          - trigger_type
+          - timestamp
+        properties:
+          event_id:
+            type: string
+            description: Уникальный идентификатор события
+          automation_id:
+            type: integer
+            description: ID сценария автоматизации
+          house_id:
+            type: integer
+            description: ID дома
+          trigger_type:
+            type: string
+            description: Тип триггера (schedule, device_state, manual)
+          trigger_device_id:
+            type: integer
+            nullable: true
+            description: ID устройства-триггера, если применимо
+          timestamp:
+            type: string
+            format: date-time
+            description: Время события
+          actions:
+            type: array
+            description: Список действий, которые будут выполнены
+            items:
+              type: object
+              properties:
+                device_id:
+                  type: integer
+                  description: ID устройства для действия
+                action:
+                  type: string
+                  description: Тип действия
+                parameters:
+                  type: object
+                  description: Параметры для действия
+      examples:
+        - payload:
+            event_id: "evt-789014"
+            automation_id: 10
+            house_id: 2
+            trigger_type: "schedule"
+            timestamp: "2023-10-15T18:00:00Z"
+            actions:
+              - device_id: 5
+                action: "set_state"
+                parameters:
+                  is_on: true
+              - device_id: 7
+                action: "set_temperature"
+                parameters:
+                  temperature: 22.0
+        - payload:
+            event_id: "evt-789015"
+            automation_id: 11
+            house_id: 2
+            trigger_type: "device_state"
+            trigger_device_id: 3
+            timestamp: "2023-10-15T18:10:00Z"
+            actions:
+              - device_id: 8
+                action: "set_brightness"
+                parameters:
+                  brightness: 70
+                  transition_time: 2
+
+    ErrorEvent:
+      name: system.error
+      title: Событие ошибки системы
+      contentType: application/json
+      payload:
+        type: object
+        required:
+          - event_id
+          - error_code
+          - service
+          - timestamp
+          - message
+        properties:
+          event_id:
+            type: string
+            description: Уникальный идентификатор события
+          error_code:
+            type: string
+            description: Код ошибки
+          service:
+            type: string
+            description: Название сервиса, в котором произошла ошибка
+          timestamp:
+            type: string
+            format: date-time
+            description: Время события
+          message:
+            type: string
+            description: Текстовое сообщение об ошибке
+          details:
+            type: object
+            description: Дополнительные детали ошибки
+          related_device_id:
+            type: integer
+            nullable: true
+            description: ID связанного устройства, если применимо
+          related_house_id:
+            type: integer
+            nullable: true
+            description: ID связанного дома, если применимо
+      examples:
+        - payload:
+            event_id: "evt-789016"
+            error_code: "DATABASE_CONNECTION_ERROR"
+            service: "device-service"
+            timestamp: "2023-10-15T18:15:00Z"
+            message: "Ошибка подключения к базе данных"
+            details:
+              error_type: "connection_timeout"
+              retry_count: 3
+        - payload:
+            event_id: "evt-789017"
+            error_code: "DEVICE_COMMAND_ERROR"
+            service: "heating-service"
+            timestamp: "2023-10-15T18:20:00Z"
+            message: "Ошибка отправки команды устройству"
+            details:
+              command: "set_temperature"
+              reason: "device_offline"
+            related_device_id: 5
+            related_house_id: 2 

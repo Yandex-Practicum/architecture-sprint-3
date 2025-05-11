@@ -1,0 +1,47 @@
+@startuml C4_Components_HeatingService
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Component.puml
+
+title Диаграмма компонентов "Сервис управления отоплением"
+
+Container_Boundary(heating_service, "Сервис управления отоплением") {
+    Component(heating_controller, "Heating Controller", "Spring REST Controller", "REST API для управления отоплением")
+    
+    Component(heating_service_impl, "Heating Service", "Spring Service", "Бизнес-логика управления отоплением")
+    
+    Component(temperature_management, "Temperature Management", "Spring Service", "Управление целевой температурой")
+    
+    Component(heating_scheduler, "Heating Scheduler", "Spring Service", "Планирование работы системы отопления")
+    
+    Component(heating_command, "Heating Command Service", "Spring Service", "Формирование команд для системы отопления")
+    
+    Component(heating_repository, "Heating Repository", "Spring Data JPA", "Доступ к данным отопления")
+    
+    Component(events_publisher, "Events Publisher", "Spring Service", "Публикация событий отопления")
+}
+
+System(api_gateway, "API Gateway", "Точка входа для клиентских запросов")
+ContainerDb(device_db, "База данных устройств", "PostgreSQL")
+Container(kafka, "Kafka", "Шина сообщений")
+Container(telemetry_service, "Сервис телеметрии", "Сбор и хранение данных с датчиков")
+System_Ext(heating_system, "Система отопления", "Физическое устройство управления отоплением")
+
+Rel(api_gateway, heating_controller, "Направляет запросы", "REST API")
+
+Rel(heating_controller, heating_service_impl, "Использует")
+Rel(heating_service_impl, temperature_management, "Использует")
+Rel(heating_service_impl, heating_scheduler, "Использует")
+Rel(heating_service_impl, heating_command, "Использует")
+Rel(heating_service_impl, heating_repository, "Использует")
+
+Rel(temperature_management, heating_repository, "Использует")
+Rel(heating_scheduler, heating_repository, "Использует")
+
+Rel(heating_repository, device_db, "Читает/пишет", "JDBC")
+
+Rel(heating_command, heating_system, "Отправляет команды", "MQTT/HTTP")
+Rel(heating_service_impl, events_publisher, "Инициирует публикацию событий")
+Rel(events_publisher, kafka, "Публикует события", "Kafka Protocol")
+
+Rel(telemetry_service, heating_service_impl, "Предоставляет данные о температуре", "REST API")
+
+@enduml 

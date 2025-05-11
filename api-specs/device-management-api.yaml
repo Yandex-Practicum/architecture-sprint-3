@@ -1,0 +1,639 @@
+openapi: 3.0.0
+info:
+  title: Device Management Service API
+  description: API для управления устройствами в системе "Тёплый дом"
+  version: 1.0.0
+servers:
+  - url: 'https://api.warm-house.com/api/v1'
+    description: Основной API сервер
+
+security:
+  - bearerAuth: []
+
+tags:
+  - name: "1. Устройства"
+    description: "Управление устройствами умного дома"
+  - name: "2. Команды"
+    description: "Отправка команд устройствам"
+
+paths:
+  /devices:
+    get:
+      tags: ["1. Устройства"]
+      summary: Получение списка устройств
+      description: Возвращает список зарегистрированных устройств с возможностью фильтрации и пагинации
+      parameters:
+        - name: house_id
+          in: query
+          description: ID дома для фильтрации устройств
+          required: false
+          schema:
+            type: integer
+        - name: device_type
+          in: query
+          description: Тип устройства для фильтрации
+          required: false
+          schema:
+            type: string
+        - name: page
+          in: query
+          description: Номер страницы пагинации
+          required: false
+          schema:
+            type: integer
+            default: 1
+        - name: page_size
+          in: query
+          description: Количество элементов на странице
+          required: false
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          description: Успешный ответ со списком устройств
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/DeviceShort'
+                  total:
+                    type: integer
+                    description: Общее количество элементов
+                  page:
+                    type: integer
+                  page_size:
+                    type: integer
+              example:
+                items:
+                  - id: 1
+                    name: "Термостат гостиной"
+                    device_type: "heating"
+                    status: "online"
+                  - id: 2
+                    name: "Освещение спальни"
+                    device_type: "lighting"
+                    status: "online"
+                total: 12
+                page: 1
+                page_size: 20
+        '401':
+          description: Необходима авторизация
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                code: "UNAUTHORIZED"
+                message: "Требуется авторизация"
+        '403':
+          description: Недостаточно прав для просмотра
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                code: "FORBIDDEN"
+                message: "Недостаточно прав для доступа к списку устройств"
+        '500':
+          description: Внутренняя ошибка сервера
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                code: "INTERNAL_ERROR"
+                message: "Внутренняя ошибка сервера"
+    
+    post:
+      tags: ["1. Устройства"]
+      summary: Регистрация нового устройства
+      description: Добавляет новое устройство в систему
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DeviceRegistration'
+            example:
+              house_id: 1
+              room_id: 3
+              device_model_id: 5
+              name: "Термостат в детской"
+              serial_number: "TH-2022-567890"
+              mac_address: "00:1B:44:11:3A:B7"
+      responses:
+        '201':
+          description: Устройство успешно зарегистрировано
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Device'
+              example:
+                id: 15
+                house_id: 1
+                room_id: 3
+                device_type_id: 2
+                device_model_id: 5
+                name: "Термостат в детской"
+                serial_number: "TH-2022-567890"
+                status: "offline"
+                ip_address: null
+                mac_address: "00:1B:44:11:3A:B7"
+                firmware_version: null
+                last_online: null
+                created_at: "2023-10-15T14:32:17Z"
+                updated_at: "2023-10-15T14:32:17Z"
+        '400':
+          description: Некорректные данные запроса
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                missing_field:
+                  summary: "Отсутствует обязательное поле"
+                  value:
+                    code: "MISSING_FIELD"
+                    message: "Отсутствует обязательное поле serial_number"
+                    details:
+                      field: "serial_number"
+                invalid_format:
+                  summary: "Неверный формат MAC-адреса"
+                  value:
+                    code: "INVALID_FORMAT"
+                    message: "Неверный формат MAC-адреса"
+                    details:
+                      field: "mac_address"
+                      value: "01:23:45:XY"
+                      pattern: "^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$"
+        '401':
+          description: Необходима авторизация
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                code: "UNAUTHORIZED"
+                message: "Требуется авторизация"
+        '409':
+          description: Конфликт данных, например устройство с таким серийным номером уже существует
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                code: "DUPLICATE_SERIAL_NUMBER"
+                message: "Устройство с серийным номером TH-2022-567890 уже зарегистрировано"
+                details:
+                  serial_number: "TH-2022-567890"
+                  existing_device_id: 8
+        '500':
+          description: Внутренняя ошибка сервера
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                code: "INTERNAL_ERROR"
+                message: "Внутренняя ошибка сервера"
+
+  /devices/{device_id}:
+    get:
+      tags: ["1. Устройства"]
+      summary: Получение информации об устройстве
+      description: Возвращает детальную информацию о конкретном устройстве по его ID
+      parameters:
+        - name: device_id
+          in: path
+          description: ID устройства
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Успешный ответ с информацией об устройстве
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Device'
+              example:
+                id: 1
+                house_id: 1
+                room_id: 2
+                device_type_id: 1
+                device_model_id: 3
+                name: "Термостат гостиной"
+                serial_number: "TH-2022-123456"
+                status: "online"
+                ip_address: "192.168.1.101"
+                mac_address: "00:1B:44:11:3A:B7"
+                firmware_version: "1.2.5"
+                last_online: "2023-10-15T14:30:00Z"
+                created_at: "2023-09-01T10:15:30Z"
+                updated_at: "2023-10-15T14:30:00Z"
+        '401':
+          description: Необходима авторизация
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                code: "UNAUTHORIZED"
+                message: "Требуется авторизация"
+        '403':
+          description: Недостаточно прав для просмотра
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                code: "FORBIDDEN"
+                message: "Недостаточно прав для просмотра устройства"
+        '404':
+          description: Устройство не найдено
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                code: "DEVICE_NOT_FOUND"
+                message: "Устройство с ID 123 не найдено"
+                details:
+                  device_id: 123
+        '500':
+          description: Внутренняя ошибка сервера
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                code: "INTERNAL_ERROR"
+                message: "Внутренняя ошибка сервера"
+
+    put:
+      tags: ["1. Устройства"]
+      summary: Обновление информации об устройстве
+      description: Изменяет настройки и метаданные устройства
+      parameters:
+        - name: device_id
+          in: path
+          description: ID устройства
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DeviceUpdate'
+            example:
+              name: "Основной термостат гостиной"
+              room_id: 2
+      responses:
+        '200':
+          description: Устройство успешно обновлено
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Device'
+              example:
+                id: 1
+                house_id: 1
+                room_id: 2
+                device_type_id: 1
+                device_model_id: 3
+                name: "Основной термостат гостиной"
+                serial_number: "TH-2022-123456"
+                status: "online"
+                ip_address: "192.168.1.101"
+                mac_address: "00:1B:44:11:3A:B7"
+                firmware_version: "1.2.5"
+                last_online: "2023-10-15T14:30:00Z"
+                created_at: "2023-09-01T10:15:30Z"
+                updated_at: "2023-10-15T14:38:00Z"
+        '400':
+          description: Некорректные данные запроса
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                code: "INVALID_FIELD"
+                message: "Недопустимое значение поля"
+                details:
+                  field: "name"
+                  reason: "Длина имени должна быть от 3 до 50 символов"
+        '401':
+          description: Необходима авторизация
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                code: "UNAUTHORIZED"
+                message: "Требуется авторизация"
+        '403':
+          description: Недостаточно прав для изменения
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                code: "FORBIDDEN"
+                message: "Недостаточно прав для изменения устройства"
+        '404':
+          description: Устройство не найдено
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                code: "DEVICE_NOT_FOUND"
+                message: "Устройство с ID 123 не найдено"
+                details:
+                  device_id: 123
+        '500':
+          description: Внутренняя ошибка сервера
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                code: "INTERNAL_ERROR"
+                message: "Внутренняя ошибка сервера"
+
+  /devices/{device_id}/command:
+    post:
+      tags: ["2. Команды"]
+      summary: Отправка команды устройству
+      description: Отправляет управляющую команду конкретному устройству
+      parameters:
+        - name: device_id
+          in: path
+          description: ID устройства
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - command
+              properties:
+                command:
+                  type: string
+                  description: Название команды
+                parameters:
+                  type: object
+                  description: Параметры команды в формате ключ-значение
+            examples:
+              set_temperature:
+                summary: "Установка температуры"
+                value:
+                  command: "set_temperature"
+                  parameters:
+                    temperature: 22.5
+              turn_on:
+                summary: "Включение устройства"
+                value:
+                  command: "turn_on"
+              set_brightness:
+                summary: "Установка яркости освещения"
+                value:
+                  command: "set_brightness"
+                  parameters:
+                    brightness: 80
+                    transition_time: 2
+      responses:
+        '200':
+          description: Команда успешно отправлена
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  command_id:
+                    type: string
+                    description: Уникальный ID отправленной команды
+              example:
+                success: true
+                command_id: "cmd-1234-abcd"
+        '400':
+          description: Некорректные данные запроса или неподдерживаемая команда
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                unsupported_command:
+                  summary: "Неподдерживаемая команда"
+                  value:
+                    code: "UNSUPPORTED_COMMAND"
+                    message: "Команда 'reboot' не поддерживается для устройства типа 'lighting'"
+                    details:
+                      device_id: 5
+                      device_type: "lighting"
+                      command: "reboot"
+                invalid_parameter:
+                  summary: "Некорректный параметр"
+                  value:
+                    code: "INVALID_PARAMETER"
+                    message: "Неверное значение параметра"
+                    details:
+                      parameter: "temperature"
+                      value: 35
+                      allowed_range: "5-30"
+        '401':
+          description: Необходима авторизация
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                code: "UNAUTHORIZED"
+                message: "Требуется авторизация"
+        '403':
+          description: Недостаточно прав для управления
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                code: "FORBIDDEN"
+                message: "Недостаточно прав для управления устройством"
+        '404':
+          description: Устройство не найдено
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                code: "DEVICE_NOT_FOUND"
+                message: "Устройство с ID 123 не найдено"
+                details:
+                  device_id: 123
+        '408':
+          description: Тайм-аут подключения к устройству
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                code: "DEVICE_TIMEOUT"
+                message: "Тайм-аут при отправке команды устройству"
+                details:
+                  device_id: 5
+                  command: "set_temperature"
+        '500':
+          description: Внутренняя ошибка сервера
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                code: "INTERNAL_ERROR"
+                message: "Внутренняя ошибка сервера"
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT токен авторизации. Формат: Bearer {token}
+
+  schemas:
+    Error:
+      type: object
+      required:
+        - code
+        - message
+      properties:
+        code:
+          type: string
+          description: Код ошибки
+        message:
+          type: string
+          description: Сообщение об ошибке
+        details:
+          type: object
+          description: Дополнительные детали ошибки
+    
+    DeviceShort:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: Уникальный идентификатор устройства
+        name:
+          type: string
+          description: Наименование устройства
+        device_type:
+          type: string
+          description: Тип устройства (heating, lighting, security, etc.)
+        status:
+          type: string
+          description: Статус устройства (online, offline, error)
+    
+    Device:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: Уникальный идентификатор устройства
+        house_id:
+          type: integer
+          description: ID дома, к которому принадлежит устройство
+        room_id:
+          type: integer
+          nullable: true
+          description: ID комнаты, где расположено устройство
+        device_type_id:
+          type: integer
+          description: ID типа устройства
+        device_model_id:
+          type: integer
+          description: ID модели устройства
+        name:
+          type: string
+          description: Пользовательское имя устройства
+        serial_number:
+          type: string
+          description: Серийный номер устройства
+        status:
+          type: string
+          description: Статус устройства (online, offline, error)
+        ip_address:
+          type: string
+          nullable: true
+          description: IP-адрес устройства
+        mac_address:
+          type: string
+          description: MAC-адрес устройства
+        firmware_version:
+          type: string
+          nullable: true
+          description: Версия прошивки
+        last_online:
+          type: string
+          format: date-time
+          nullable: true
+          description: Время последнего подключения
+        created_at:
+          type: string
+          format: date-time
+          description: Дата создания
+        updated_at:
+          type: string
+          format: date-time
+          description: Дата обновления
+
+    DeviceRegistration:
+      type: object
+      required:
+        - house_id
+        - device_model_id
+        - serial_number
+        - mac_address
+      properties:
+        house_id:
+          type: integer
+          description: ID дома, к которому принадлежит устройство
+        room_id:
+          type: integer
+          nullable: true
+          description: ID комнаты, где расположено устройство
+        device_model_id:
+          type: integer
+          description: ID модели устройства
+        name:
+          type: string
+          description: Пользовательское имя устройства
+        serial_number:
+          type: string
+          description: Серийный номер устройства
+        mac_address:
+          type: string
+          description: MAC-адрес устройства
+
+    DeviceUpdate:
+      type: object
+      properties:
+        name:
+          type: string
+          description: Новое имя устройства
+        room_id:
+          type: integer
+          nullable: true
+          description: Новый ID комнаты 

@@ -1,0 +1,56 @@
+@startuml C4_Components_DeviceService
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Component.puml
+
+title Диаграмма компонентов "Сервис управления устройствами"
+
+Container_Boundary(device_service, "Сервис управления устройствами") {
+    Component(device_controller, "Device Controller", "Spring REST Controller", "API для управления устройствами")
+    
+    Component(device_discovery, "Device Discovery Service", "Spring Service", "Обнаружение новых устройств в сети")
+    
+    Component(device_registration, "Device Registration Service", "Spring Service", "Регистрация устройств в системе")
+    
+    Component(device_connection, "Device Connection Manager", "Spring Service", "Управление подключением устройств")
+    
+    Component(device_config, "Device Configuration Service", "Spring Service", "Настройка параметров устройств")
+    
+    Component(device_state, "Device State Manager", "Spring Service", "Отслеживание и управление состоянием устройств")
+    
+    Component(protocol_adapter, "Protocol Adapter", "Spring Service", "Адаптеры для работы с различными протоколами IoT (MQTT, HTTP)")
+    
+    Component(device_repository, "Device Repository", "Spring Data JPA", "Доступ к данным устройствам")
+}
+
+System(api_gateway, "API Gateway", "Точка входа для клиентских запросов")
+ContainerDb(device_db, "База данных устройств", "PostgreSQL")
+Container(kafka, "Kafka", "Шина сообщений")
+
+System_Ext(smart_devices, "Умные устройства", "Различные устройства умного дома")
+
+Rel(api_gateway, device_controller, "Направляет запросы", "REST API")
+
+Rel(device_controller, device_registration, "Использует")
+Rel(device_controller, device_connection, "Использует")
+Rel(device_controller, device_state, "Использует")
+Rel(device_controller, device_config, "Использует")
+
+Rel(device_discovery, smart_devices, "Обнаруживает", "mDNS/UPnP/SSDP")
+Rel(device_discovery, device_registration, "Передает информацию об обнаруженных устройствах")
+
+Rel(device_registration, device_repository, "Использует")
+Rel(device_connection, device_repository, "Использует")
+Rel(device_state, device_repository, "Использует")
+Rel(device_config, device_repository, "Использует")
+
+Rel(device_repository, device_db, "Читает/пишет", "JDBC")
+
+Rel(device_connection, protocol_adapter, "Использует")
+Rel(device_state, protocol_adapter, "Использует")
+Rel(device_config, protocol_adapter, "Использует")
+
+Rel(protocol_adapter, smart_devices, "Взаимодействует", "MQTT/HTTP/Zigbee/Z-Wave")
+
+Rel(device_state, kafka, "Публикует изменения состояния", "Kafka Protocol")
+Rel(device_registration, kafka, "Публикует события регистрации", "Kafka Protocol")
+
+@enduml 

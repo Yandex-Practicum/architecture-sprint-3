@@ -1,0 +1,81 @@
+@startuml C4_Containers
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+
+title Диаграмма контейнеров системы "Тёплый дом" (To-Be)
+
+Person(homeowner, "Владелец дома", "Пользователь системы")
+Person(technician, "Специалист по подключению", "Консультирует и помогает с подключением")
+
+System_Boundary(smart_home_system, "Экосистема Тёплый дом") {
+    Container(api_gateway, "API Gateway", "Spring Cloud Gateway", "Единая точка входа для клиентских приложений, маршрутизация запросов")
+    
+    Container(auth_service, "Сервис аутентификации", "Spring Boot, JWT", "Отвечает за аутентификацию и авторизацию пользователей")
+    
+    Container(user_service, "Сервис управления пользователями", "Spring Boot, JPA", "Управление пользовательскими данными и профилями")
+    
+    Container(device_service, "Сервис управления устройствами", "Spring Boot, JPA", "Управление устройствами, регистрация и подключение")
+    
+    Container(heating_service, "Сервис управления отоплением", "Spring Boot, JPA", "Управление системами отопления")
+    
+    Container(lighting_service, "Сервис управления освещением", "Spring Boot, JPA", "Управление системами освещения")
+    
+    Container(security_service, "Сервис безопасности", "Spring Boot, JPA", "Управление камерами и умными замками")
+    
+    Container(telemetry_service, "Сервис телеметрии", "Spring Boot, JPA", "Сбор и хранение данных с датчиков")
+    
+    Container(automation_service, "Сервис сценариев", "Spring Boot, JPA", "Создание и исполнение пользовательских сценариев")
+    
+    Container(notification_service, "Сервис уведомлений", "Spring Boot, JPA", "Отправка уведомлений пользователям")
+    
+    ContainerDb(user_db, "База данных пользователей", "PostgreSQL", "Хранение данных о пользователях")
+    ContainerDb(device_db, "База данных устройств", "PostgreSQL", "Хранение данных об устройствах")
+    ContainerDb(telemetry_db, "База данных телеметрии", "TimescaleDB", "Хранение исторических данных с устройств")
+    ContainerDb(automation_db, "База данных сценариев", "PostgreSQL", "Хранение автоматизаций и сценариев")
+    
+    Container(kafka, "Шина сообщений", "Kafka", "Асинхронный обмен сообщениями между сервисами")
+}
+
+System_Ext(heating_system, "Система отопления", "Физическое устройство управления отоплением")
+System_Ext(lighting_system, "Система освещения", "Физическое устройство управления освещением")
+System_Ext(security_system, "Система безопасности", "Камеры, замки, ворота")
+System_Ext(temperature_sensor, "Датчик температуры", "Измеряет текущую температуру в доме")
+
+Rel(homeowner, api_gateway, "Использует мобильное/веб-приложение", "HTTPS")
+Rel(technician, user_service, "Консультирует по подключению")
+
+Rel(api_gateway, auth_service, "Перенаправляет запросы на аутентификацию", "REST")
+Rel(api_gateway, user_service, "Перенаправляет запросы управления профилем", "REST")
+Rel(api_gateway, device_service, "Перенаправляет запросы управления устройствами", "REST")
+Rel(api_gateway, heating_service, "Перенаправляет запросы управления отоплением", "REST")
+Rel(api_gateway, lighting_service, "Перенаправляет запросы управления освещением", "REST")
+Rel(api_gateway, security_service, "Перенаправляет запросы управления безопасностью", "REST")
+Rel(api_gateway, telemetry_service, "Перенаправляет запросы получения телеметрии", "REST")
+Rel(api_gateway, automation_service, "Перенаправляет запросы управления сценариями", "REST")
+
+Rel(auth_service, user_db, "Читает/пишет данные аутентификации", "JDBC")
+Rel(user_service, user_db, "Читает/пишет данные пользователей", "JDBC")
+Rel(device_service, device_db, "Читает/пишет данные устройств", "JDBC")
+Rel(heating_service, device_db, "Читает данные устройств отопления", "JDBC")
+Rel(lighting_service, device_db, "Читает данные устройств освещения", "JDBC")
+Rel(security_service, device_db, "Читает данные устройств безопасности", "JDBC")
+Rel(telemetry_service, telemetry_db, "Сохраняет данные телеметрии", "JDBC")
+Rel(automation_service, automation_db, "Читает/пишет данные сценариев", "JDBC")
+
+Rel(heating_service, kafka, "Публикует события", "Kafka Protocol")
+Rel(lighting_service, kafka, "Публикует события", "Kafka Protocol")
+Rel(security_service, kafka, "Публикует события", "Kafka Protocol")
+Rel(telemetry_service, kafka, "Публикует события телеметрии", "Kafka Protocol")
+Rel(automation_service, kafka, "Подписывается на события для активации сценариев", "Kafka Protocol")
+Rel(notification_service, kafka, "Подписывается на события для отправки уведомлений", "Kafka Protocol")
+
+Rel(device_service, heating_system, "Регистрирует и подключает", "MQTT/HTTP")
+Rel(device_service, lighting_system, "Регистрирует и подключает", "MQTT/HTTP")
+Rel(device_service, security_system, "Регистрирует и подключает", "MQTT/HTTP")
+Rel(device_service, temperature_sensor, "Регистрирует и подключает", "MQTT/HTTP")
+
+Rel(heating_service, heating_system, "Отправляет команды", "MQTT/HTTP")
+Rel(lighting_service, lighting_system, "Отправляет команды", "MQTT/HTTP")
+Rel(security_service, security_system, "Отправляет команды", "MQTT/HTTP")
+Rel(telemetry_service, temperature_sensor, "Получает данные", "MQTT/HTTP")
+
+@enduml 

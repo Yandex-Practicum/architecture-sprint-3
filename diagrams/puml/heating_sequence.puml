@@ -1,0 +1,69 @@
+@startuml C4_Code_HeatingControl
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Dynamic.puml
+
+title Диаграмма последовательности "Автоматическое поддержание температуры"
+
+actor Homeowner as "Владелец дома"
+participant HeatingController as "HeatingController"
+participant HeatingService as "HeatingService"
+participant TemperatureManagement as "TemperatureManagement"
+participant HeatingCommand as "HeatingCommand"
+participant TelemetryService as "TelemetryService"
+participant Kafka as "Kafka"
+participant HeatingSystem as "Heating System"
+
+Homeowner -> HeatingController : Установить целевую температуру
+activate HeatingController
+
+HeatingController -> HeatingService : setTargetTemperature(homeId, roomId, temperature)
+activate HeatingService
+
+HeatingService -> TemperatureManagement : updateTargetTemperature(homeId, roomId, temperature)
+activate TemperatureManagement
+TemperatureManagement --> HeatingService : Температура обновлена
+deactivate TemperatureManagement
+
+HeatingService -> Kafka : Публикация события "TargetTemperatureChanged"
+activate Kafka
+Kafka --> HeatingService : Подтверждение публикации
+deactivate Kafka
+
+HeatingService --> HeatingController : Успешное обновление
+deactivate HeatingService
+
+HeatingController --> Homeowner : 200 OK, Температура установлена
+deactivate HeatingController
+
+note over TelemetryService, HeatingSystem
+  Цикл поддержания температуры (каждые 5 минут)
+end note
+
+TelemetryService -> HeatingService : getCurrentTemperature(homeId, roomId)
+activate HeatingService
+activate TelemetryService
+
+HeatingService -> TemperatureManagement : getCurrentTemperature(homeId, roomId)
+activate TemperatureManagement
+TemperatureManagement -> TemperatureManagement : compareWithTargetTemperature()
+TemperatureManagement --> HeatingService : Текущая температура < целевой
+deactivate TemperatureManagement
+
+HeatingService -> HeatingCommand : turnOnHeating(homeId, roomId)
+activate HeatingCommand
+HeatingCommand -> HeatingSystem : sendCommand(TURN_ON)
+activate HeatingSystem
+HeatingSystem --> HeatingCommand : Команда выполнена
+deactivate HeatingSystem
+HeatingCommand --> HeatingService : Отопление включено
+deactivate HeatingCommand
+
+HeatingService -> Kafka : Публикация события "HeatingSystemStateChanged"
+activate Kafka
+Kafka --> HeatingService : Подтверждение публикации
+deactivate Kafka
+
+HeatingService --> TelemetryService : Текущая температура и статус системы
+deactivate HeatingService
+deactivate TelemetryService
+
+@enduml 

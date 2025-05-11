@@ -1,0 +1,132 @@
+@startuml ER_Diagram
+!define table(x) class x << (T,#FFAAAA) >>
+!define primary_key(x) <u>x</u>
+!define foreign_key(x) <i>x</i>
+
+hide circle
+hide methods
+skinparam linetype ortho
+
+table(User) {
+  primary_key(id)
+  username
+  email
+  password_hash
+  first_name
+  last_name
+  phone_number
+  created_at
+  updated_at
+  status
+}
+
+table(House) {
+  primary_key(id)
+  foreign_key(owner_id)
+  name
+  address
+  timezone
+  created_at
+  updated_at
+}
+
+table(Room) {
+  primary_key(id)
+  foreign_key(house_id)
+  name
+  floor
+  area
+}
+
+table(Device) {
+  primary_key(id)
+  foreign_key(device_type_id)
+  foreign_key(device_model_id)
+  foreign_key(house_id)
+  foreign_key(room_id)
+  name
+  serial_number
+  status
+  ip_address
+  mac_address
+  firmware_version
+  last_online
+  created_at
+  updated_at
+}
+
+table(DeviceType) {
+  primary_key(id)
+  name
+  description
+  icon
+}
+
+table(DeviceModel) {
+  primary_key(id)
+  foreign_key(device_type_id)
+  manufacturer
+  model_name
+  protocol
+  supported_features
+}
+
+table(TelemetryData) {
+  primary_key(id)
+  foreign_key(device_id)
+  timestamp
+  metric_name
+  metric_value
+  metric_unit
+}
+
+table(Automation) {
+  primary_key(id)
+  foreign_key(house_id)
+  name
+  description
+  is_active
+  trigger_type
+  trigger_data
+  action_type
+  action_data
+  created_at
+  updated_at
+}
+
+table(Notification) {
+  primary_key(id)
+  foreign_key(user_id)
+  title
+  message
+  type
+  is_read
+  created_at
+}
+
+table(Permission) {
+  primary_key(id)
+  foreign_key(user_id)
+  foreign_key(house_id)
+  permission_level
+  created_at
+  updated_at
+}
+
+' Связи
+User "1" -- "0..*" House : владеет >
+User "1" -- "0..*" Notification : получает >
+User "1" -- "0..*" Permission : имеет >
+Permission "*" -- "1" House : к >
+
+House "1" -- "0..*" Room : содержит >
+House "1" -- "0..*" Device : содержит >
+House "1" -- "0..*" Automation : имеет >
+
+Room "1" -- "0..*" Device : содержит >
+
+DeviceType "1" -- "0..*" DeviceModel : классифицирует >
+DeviceModel "1" -- "0..*" Device : определяет >
+Device "1" -- "0..*" TelemetryData : генерирует >
+
+@enduml 
